@@ -1,1 +1,9 @@
 build
+
+# ignore unneeded proj files
+*.clang-format
+*.code-workspace
+*.DS_Store
+*.exe
+*.out
+makefile
