@@ -4,7 +4,7 @@
 gcc test_has_solution_function.c solve_24_Game_function.c permute.c -o test_has_solution
 */
 
-// 声明 has_solution 函数
+// declare the function
 bool has_solution(int a, int b, int c, int d);
 
 int main()

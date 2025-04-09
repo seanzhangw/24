@@ -2,14 +2,6 @@
 #include <stdbool.h>
 
 #include "permute.h"
-/*
-    Peter Zhang
-    10/4/2019
-    24 Game Solver
-    This function takes in four integers and then uses functions and for loops to
-    calculate all 64 combinations of all permutations, but returns true if a solution
-    is found or false if there is none.
-*/
 
 double calc(int i, double num, double num2);
 double calc2(int op, int op2, int op3, int arr[], int var);
@@ -19,32 +11,32 @@ bool has_solution(int a, int b, int c, int d)
     int numbers[4] = {a, b, c, d};
     double val;
 
-    // 对数组进行排序
+    // Sort the array
     sortArray(4, numbers);
 
-    // 遍历所有排列和操作符组合
+    // Iterate through all permutations and operator combinations
     do
     {
-        for (int i = 0; i < 4; i++) // 操作符1
+        for (int i = 0; i < 4; i++) // Operator 1
         {
-            for (int j = 0; j < 4; j++) // 操作符2
+            for (int j = 0; j < 4; j++) // Operator 2
             {
-                for (int k = 0; k < 4; k++) // 操作符3
+                for (int k = 0; k < 4; k++) // Operator 3
                 {
-                    for (int l = 0; l < 6; l++) // 括号排列
+                    for (int l = 0; l < 6; l++) // Parentheses arrangement
                     {
                         val = calc2(i, j, k, numbers, l);
-                        if (24 - 0.0001 < val && val < 24 + 0.0001) // 检查是否接近24
+                        if (24 - 0.0001 < val && val < 24 + 0.0001) // Check if close to 24
                         {
-                            return true; // 找到解，返回 true
+                            return true;
                         }
                     }
                 }
             }
         }
-    } while (findNext(4, numbers)); // 获取下一个排列
+    } while (findNext(4, numbers)); // Get the next permutation
 
-    return false; // 无解，返回 false
+    return false;
 }
 
 double calc(int op, double num, double num2)
@@ -64,7 +56,7 @@ double calc(int op, double num, double num2)
     case 3: // divide
         if (num2 == 0)
         {
-            num2 = 0.0000001; // 避免除以零
+            num2 = 0.0000001; // Avoid division by zero
         }
         returnVal = num / num2;
         break;
