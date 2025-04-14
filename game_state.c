@@ -59,7 +59,6 @@ void transitionToState(GameState newState)
         // 23 * 8 = 184. 184 /2 = 92. 340 - 92 = 248.
         setCursor(248, 200);
         setTextColor2(WHITE, BLACK);
-
         writeStringBig("Press any key to start");
         break;
     case GAME_PLAYING:
