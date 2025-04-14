@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 /*
-gcc test_has_solution_function.c solve_24_Game_function.c permute.c -o test_has_solution
+gcc test_has_solution_function.c solve_24_Game_function.c permute.c -o test_has_solution_function
 */
 
 // declare the function
@@ -9,7 +9,7 @@ bool has_solution(int a, int b, int c, int d);
 
 int main()
 {
-    if (has_solution(1, 1, 1, 1))
+    if (has_solution(1, 2, 3, 7))
     // if (has_solution(1, 2, 3, 4))
     // if (has_solution(1, 1, 1, 1))
     // if (has_solution(1, 2, 3, 5))
