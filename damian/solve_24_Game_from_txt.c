@@ -4,7 +4,7 @@
 #include <string.h>
 
 // Include the necessary header file
-#include "utils/permute.h"
+#include "reference_code/permute.h"
 
 /*
     gcc solve_24_Game_from_txt.c utils/permute.c -o solve_24_Game_from_txt

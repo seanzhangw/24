@@ -1,15 +1,8 @@
 #include <stdio.h>
 
 // #include "permute.h"
-#include "utils/permute.h"
+#include "reference_code/permute.h"
 /*
-    Peter Zhang
-    10/4/2019
-    24 Game Solver
-    This program takes in four integers and then uses functions and for loops to
-    calculate all 64 combinations of all permutations, but returns the first
-    solution found or no solution if there is none.
-
     v1: only one solution is printed
     problem: negative numbers will appear in the operation process
 */
