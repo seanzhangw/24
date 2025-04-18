@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "pico/stdlib.h"
 #include "hardware/pio.h"
 #include "hardware/dma.h"
@@ -713,20 +714,7 @@ void pasteImage(unsigned char *image, int image_height, int image_width, short x
 
   for (int i = 0; i < image_height; i++)
   {
-    for (int j = 0; j < image_width; j++)
-    {
-      int image_index = (i * image_width) + j;
-
-      char pixel1 = image[image_index] & 0x0F;        // Lower 4 bits
-      char pixel2 = (image[image_index] >> 4) & 0x0F; // Upper 4 bits
-
-      // Calculate the positions in the vga_data_array'
-      int vga_index1 = ((y + i) * 640 + (x + 2 * j)) >> 1;
-      int vga_index2 = ((y + i) * 640 + (x + 2 * j + 1)) >> 1;
-
-      // Write the pixels into the vga_data_array
-      vga_data_array[vga_index1] = (vga_data_array[vga_index1] & BOTTOMMASK) | pixel1;
-      vga_data_array[vga_index2] = (vga_data_array[vga_index2] & TOPMASK) | (pixel2 << 4);
-    }
+    int vga_index = ((y + i) * 640 + x) >> 1;
+    memcpy(&vga_data_array[vga_index], &image[i * image_width], image_width);
   }
 }
