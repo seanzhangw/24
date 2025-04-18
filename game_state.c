@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "game_state.h"
+#include "assets.h"
 
 // Initialize the current game state
 GameState currentState = START_MENU;
@@ -85,6 +86,7 @@ void executeStep()
     switch (currentState)
     {
     case START_MENU:
+        pasteImage(&color[0][0], sizeof(color[0]), sizeof(color[0]), 0, 0);
         // Logic for start menu
         break;
     case GAME_PLAYING:

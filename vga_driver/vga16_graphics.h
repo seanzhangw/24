@@ -84,3 +84,8 @@ void writeStringBig(char *str);
 void setTextColorBig(char, char); // works, but can use usual setTextColor2
 // 5x7 font
 void writeStringBold(char *str);
+
+// custom modifications:
+
+// x, y is the top left corner
+void pasteImage(unsigned char *image, int image_height, int image_width, short x, short y);
