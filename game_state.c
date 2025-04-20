@@ -119,7 +119,9 @@ void executeStep()
     {
     case START_MENU:
 
-        pasteImage(&twoOfDiamond[0][0], IMG_HEIGHT, IMG_WIDTH, 10, 10);
+        pasteImage(&tenOfHeart[0][0], IMG_HEIGHT, IMG_WIDTH, 10, 10);
+        pasteImage(&background[0][0], 639, 479, 10, 10);
+
         // Logic for start
 
         // Blink the text

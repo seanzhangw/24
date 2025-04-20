@@ -1,9 +1,8 @@
 from PIL import Image
-# 8, 12
 L_ratio = 6
 W_ratio = 10
 
-def simplify_to_primary(image_path):
+def getPixels(image_path):
     img = Image.open(image_path).convert('RGB')
     width, height = img.size
     new_width = width // W_ratio
@@ -17,9 +16,9 @@ def simplify_to_primary(image_path):
         elif r > 200 and g > 200 and b > 200:
             return 0xFF  # White
         elif r > g and r > b:
-            return 0x88  # Red (or you can use another value)
+            return 0x88  # Red
         else:
-            return 0xFF  # Default to white
+            return 0xFF  # Default is white
 
     for y in range(new_height):
         for x in range(new_width):
@@ -29,11 +28,9 @@ def simplify_to_primary(image_path):
                 r, g, b = img.getpixel((x * W_ratio, y * L_ratio))
                 pixels[y][x] = get_color_byte(r, g, b)
 
-    # Print nicely formatted
+    # Array Format
     for row in pixels:
         print("{" + ", ".join(f"0x{val:02X}" for val in row) + "},")
-    print(len(pixels)), print(len(pixels[0]))
 
-# Example usage:
-image_path = "./content/9_of_clubs.png"  # Replace with your image path
-simplify_to_primary(image_path)
+image_path = "/content/10_of_hearts.png"
+getPixels(image_path)
