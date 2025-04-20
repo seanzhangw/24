@@ -35,7 +35,6 @@
 // Include hardware libraries
 #include "hardware/pio.h"
 #include "hardware/dma.h"
-#include "hardware/clocks.h"
 #include "hardware/pll.h"
 // Include protothreads
 #include "pt_driver/pt_cornell_rp2040_v1_3.h"

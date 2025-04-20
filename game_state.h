@@ -1,4 +1,10 @@
 #include "vga_driver/vga16_graphics.h"
+#include "hardware/clocks.h"
+#include "hardware/timer.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
 // Define the game states
 typedef enum

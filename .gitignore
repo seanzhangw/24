@@ -7,3 +7,6 @@ build
 *.exe
 *.out
 makefile
+
+
+asset-gen/24/*
