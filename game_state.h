@@ -32,3 +32,5 @@ extern int nums[4];
 void transitionToState(GameState newState);
 
 void executeStep();
+
+void sol_init();

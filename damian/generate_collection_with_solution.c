@@ -23,10 +23,10 @@ void generate_and_check()
 
     for (int i = 0; i < 1000; i++)
     {                            // Generate 1000 sets of random numbers
-        int a = rand() % 13 + 1; // Generate a random number between 1 and 13
-        int b = rand() % 13 + 1;
-        int c = rand() % 13 + 1;
-        int d = rand() % 13 + 1;
+        int a = rand() % 10 + 1; // Generate a random number between 1 and 13
+        int b = rand() % 10 + 1;
+        int c = rand() % 10 + 1;
+        int d = rand() % 10 + 1;
 
         if (has_solution(a, b, c, d))
         {                                               

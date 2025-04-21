@@ -1,6 +1,7 @@
 #include "assets.h"
 
 #include "game_state.h"
+#include "array_sol.h"
 
 // Initialize the current game state
 GameState currentState = START_MENU;
@@ -10,6 +11,13 @@ int nums[4] = {-1, -1, -1, -1}; // Initialize numbers to -1
 
 #define MAX_LINE_LEN 2048
 #define MAX_LINES 766
+
+void sol_init() {
+    array_solutions(100);
+    for (int i = 0; i < 100; ++i) {
+        printf("%d %d %d %d\n", arrSol[i][0], arrSol[i][1], arrSol[i][2], arrSol[i][3]);
+    }
+}
 
 void _generateNumbers()
 {
@@ -120,7 +128,7 @@ void executeStep()
     case START_MENU:
 
         pasteImage(&tenOfHeart[0][0], IMG_HEIGHT, IMG_WIDTH, 10, 10);
-        pasteImage(&background[0][0], 639, 479, 10, 10);
+        //pasteImage(&background[0][0], 639, 479, 10, 10);
 
         // Logic for start
 
