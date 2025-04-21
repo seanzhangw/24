@@ -41,6 +41,7 @@
 
 // Include game headers
 #include "game_state.h"
+#include "array_sol.h"
 
 // ==================================================
 // === users serial input thread
@@ -220,6 +221,9 @@ int main()
 
   // initialize VGA
   initVGA();
+
+  // intialize array with solutions
+  sol_init();
 
   // start core 1
   multicore_reset_core1();
