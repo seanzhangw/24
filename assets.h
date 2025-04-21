@@ -2,7 +2,7 @@
 #define IMG_WIDTH 50
 #define IMG_HEIGHT 121
 
-extern unsigned char background[639][479];
+// extern unsigned char background[639][479];
 
 extern unsigned char aceOfSpade[IMG_HEIGHT][IMG_WIDTH];
 extern unsigned char twoOfSpade[IMG_HEIGHT][IMG_WIDTH];
@@ -47,3 +47,5 @@ extern unsigned char sevenOfClub[IMG_HEIGHT][IMG_WIDTH];
 extern unsigned char eightOfClub[IMG_HEIGHT][IMG_WIDTH];
 extern unsigned char nineOfClub[IMG_HEIGHT][IMG_WIDTH];
 extern unsigned char tenOfClub[IMG_HEIGHT][IMG_WIDTH];
+
+extern unsigned char backOfCard[IMG_HEIGHT][IMG_WIDTH];

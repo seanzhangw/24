@@ -42,6 +42,8 @@
 // Include game headers
 #include "game_state.h"
 
+#define FRAME_RATE 33000
+
 // ==================================================
 // === users serial input thread
 // ==================================================
@@ -157,11 +159,15 @@ static PT_THREAD(protothread_anim(struct pt *pt))
   // Mark beginning of thread
   PT_BEGIN(pt);
 
+  static int begin_time;
+  static int spare_time;
   while (1)
   {
+    begin_time = time_us_32();
     executeStep();
-    PT_YIELD_usec(1000); // Yield to other threads
 
+    spare_time = FRAME_RATE - (time_us_32() - begin_time);
+    PT_YIELD_usec(spare_time);
   } // END WHILE(1)
   PT_END(pt);
 } // animation thread

@@ -14,6 +14,15 @@ typedef enum
     GAME_OVER
 } GameState;
 
+typedef struct
+{
+    int value;
+    int x;
+    int y;
+    int destX;
+    int destY;
+} Card;
+
 extern GameState currentState;
 extern int stateChange;
 
