@@ -4,12 +4,12 @@
 #include <string.h>
 
 // Include the necessary header file
-#include "reference_code/permute.h"
+#include "../reference_code/permute.h"
 
 /*
-    gcc solve_24_Game_from_txt.c utils/permute.c -o solve_24_Game_from_txt
+    gcc solve_24_Game_from_txt.c ../reference_code/permute.c -o solve_24_Game_from_txt
 
-    This program reads numbers from a file (collection_with_solution.txt),
+    This program reads numbers from a file (collections_1to10.txt),
     calculates the solution for each line, and appends all calculation methods
     to the output, separated by commas, along with the solution count.
     v1: only one solution is printed
@@ -17,6 +17,7 @@
     problem?: negative numbers will appear in the operation process
     v3: avoid duplicated solutions
     v4: include the solution count
+    v5: add difficulty level (hard, medium, easy)
 */
 
 double calc(int i, double num, double num2);
@@ -25,18 +26,28 @@ void AppendSolution(char *solutions, char uniqueSolutions[][100], int *solutionC
 
 int main()
 {
-    FILE *inputFile = fopen("collection_with_solution.txt", "r");
+    FILE *inputFile = fopen("collections_1to10.txt", "r");
     if (inputFile == NULL)
     {
         perror("Failed to open input file");
         return EXIT_FAILURE;
     }
 
-    FILE *outputFile = fopen("collection_with_solution_with_methods.txt", "w");
+    FILE *outputFile = fopen("collections_1to10_with_methods.txt", "w");
     if (outputFile == NULL)
     {
         perror("Failed to open output file");
         fclose(inputFile);
+        return EXIT_FAILURE;
+    }
+
+    // Add a new output file for number of solutions
+    FILE *outputNumSols = fopen("collections_with_numofsols_difficultylevel.txt", "w");
+    if (outputNumSols == NULL)
+    {
+        perror("Failed to open number of solutions output file");
+        fclose(inputFile);
+        fclose(outputFile);
         return EXIT_FAILURE;
     }
 
@@ -47,7 +58,7 @@ int main()
     while (fscanf(inputFile, "%d %d %d %d", &numbers[0], &numbers[1], &numbers[2], &numbers[3]) == 4)
     {
         fprintf(outputFile, "%d %d %d %d: ", numbers[0], numbers[1], numbers[2], numbers[3]);
-
+        fprintf(outputNumSols, "%d %d %d %d ", numbers[0], numbers[1], numbers[2], numbers[3]); 
         // Sort the array
         sortArray(4, numbers);
 
@@ -84,17 +95,33 @@ int main()
             // Remove the trailing comma and space
             solutions[strlen(solutions) - 2] = '\0';
             fprintf(outputFile, "[%d] %s\n", solutionCount, solutions); // Include solution count
+            // fprintf(outputNumSols, "%d\n", solutionCount); // Write only the number of solutions
+
+            // Determine difficulty level
+            const char *difficulty;
+            if (solutionCount < 30)
+                difficulty = "hard";
+            else if (solutionCount > 50)
+                difficulty = "easy";
+            else
+                difficulty = "medium";
+
+            // Write to collections_with_numofsols.txt
+            fprintf(outputNumSols, "%d %s\n", solutionCount, difficulty);
         }
         else
         {
             fprintf(outputFile, "No solution\n");
+            fprintf(outputNumSols, "0\n"); // Write 0 for no solution
         }
     }
 
     fclose(inputFile);
     fclose(outputFile);
+    fclose(outputNumSols);
 
-    printf("Results have been written to collection_with_solution_with_methods.txt\n");
+    printf("Results have been written to collections_1to10_with_methods.txt\n");
+    printf("Results have been written to collections_with_numofsols_difficultylevel.txt\n");
     return 0;
 }
 

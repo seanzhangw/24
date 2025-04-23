@@ -2,7 +2,7 @@
 #include <stdbool.h>
 
 // #include "permute.h"
-#include "reference_code/permute.h"
+#include "../reference_code/permute.h"
 
 double calc(int i, double num, double num2);
 double calc2(int op, int op2, int op3, int arr[], int var);
