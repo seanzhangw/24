@@ -62,7 +62,7 @@ static PT_THREAD(protothread_serial(struct pt *pt))
   while (1)
   {
     // print prompt
-    switch (currentState)
+    switch (player1.currentState)
     {
     case START_MENU:
       sprintf(pt_serial_out_buffer, "Input anything to start game: ");
@@ -73,7 +73,7 @@ static PT_THREAD(protothread_serial(struct pt *pt))
       // check if any input is received
       if (strlen(pt_serial_in_buffer) > 0)
       {
-        transitionToState(GAME_PLAYING);
+        transitionToState(&player1, GAME_PLAYING);
       }
       break;
     case GAME_PLAYING:
@@ -88,7 +88,7 @@ static PT_THREAD(protothread_serial(struct pt *pt))
       if (sscanf(pt_serial_in_buffer, "%d %c %d", &index_1, &operation, &index_2) == 3)
       {
         int result;
-        if (nums[index_1] == -1 || nums[index_2] == -1)
+        if (player1.nums[index_1] == -1 || player1.nums[index_2] == -1)
         {
           sprintf(pt_serial_out_buffer, "Error: Invalid index\n\r");
           serial_write;
@@ -97,16 +97,16 @@ static PT_THREAD(protothread_serial(struct pt *pt))
         switch (operation)
         {
         case '+':
-          result = nums[index_1] + nums[index_2];
+          result = player1.nums[index_1] + player1.nums[index_2];
           break;
         case '-':
-          result = nums[index_1] - nums[index_2];
+          result = player1.nums[index_1] - player1.nums[index_2];
           break;
         case '*':
-          result = nums[index_1] * nums[index_2];
+          result = player1.nums[index_1] * player1.nums[index_2];
           break;
         case '/':
-          result = nums[index_1] / nums[index_2];
+          result = player1.nums[index_1] / player1.nums[index_2];
           break;
         default:
           sprintf(pt_serial_out_buffer, "Error: Invalid operation\n\r");
@@ -115,20 +115,20 @@ static PT_THREAD(protothread_serial(struct pt *pt))
         }
         // Draw the result underneath the index_2 number
         char buffer[10];
-        nums[index_1] = -1;
-        nums[index_2] = result; // Update the number at index_2 with the result
+        player1.nums[index_1] = -1;
+        player1.nums[index_2] = result; // Update the number at index_2 with the result
         // Display the result
         sprintf(pt_serial_out_buffer, "Result: %d\n\r", result);
         serial_write;
       }
       else if (strcmp(pt_serial_in_buffer, "exit") == 0)
       {
-        transitionToState(GAME_OVER);
+        transitionToState(&player1, GAME_OVER);
       }
       else if (strcmp(pt_serial_in_buffer, "reset") == 0)
       {
         // Reset the game state
-        transitionToState(GAME_PLAYING);
+        transitionToState(&player1, GAME_PLAYING);
       }
       else
       {
@@ -145,7 +145,7 @@ static PT_THREAD(protothread_serial(struct pt *pt))
       // check if any input is received
       if (strlen(pt_serial_in_buffer) > 0)
       {
-        transitionToState(START_MENU);
+        transitionToState(&player1, START_MENU);
       }
       break;
     }
@@ -165,7 +165,7 @@ static PT_THREAD(protothread_anim(struct pt *pt))
   while (1)
   {
     begin_time = time_us_32();
-    executeStep();
+    executeStep(&player1);
 
     spare_time = FRAME_RATE - (time_us_32() - begin_time);
     PT_YIELD_usec(spare_time);
@@ -189,15 +189,10 @@ static PT_THREAD(protothread_anim1(struct pt *pt))
   while (1)
   {
     // Measure time at start of thread
-    // begin_time = time_us_32();
-    // // erase boid
-    // drawRect(fix2int15(boid1_x), fix2int15(boid1_y), 2, 2, BLACK);
-    // // update boid's position and velocity
-    // wallsAndEdges(&boid1_x, &boid1_y, &boid1_vx, &boid1_vy);
-    // // draw the boid at its new position
-    // drawRect(fix2int15(boid1_x), fix2int15(boid1_y), 2, 2, color);
-    // // delay in accordance with frame rate
-    // spare_time = FRAME_RATE - (time_us_32() - begin_time);
+    begin_time = time_us_32();
+    executeStep(&player2);
+    // delay in accordance with frame rate
+    spare_time = FRAME_RATE - (time_us_32() - begin_time);
     // yield for necessary amount of time
     PT_YIELD_usec(spare_time);
     // NEVER exit while
@@ -211,7 +206,7 @@ static PT_THREAD(protothread_anim1(struct pt *pt))
 void core1_main()
 {
   // Add animation thread
-  // pt_add_thread(protothread_anim1);
+  pt_add_thread(protothread_anim1);
   // Start the scheduler
   pt_schedule_start;
 }
@@ -228,7 +223,7 @@ int main()
   // initialize VGA
   initVGA();
 
-  // intialize array with solutions
+  // initialize solutions
   sol_init();
 
   // start core 1
@@ -239,7 +234,7 @@ int main()
   pt_add_thread(protothread_serial);
   pt_add_thread(protothread_anim);
 
-  transitionToState(START_MENU);
+  transitionToState(&player1, START_MENU);
 
   // start scheduler
   pt_schedule_start;

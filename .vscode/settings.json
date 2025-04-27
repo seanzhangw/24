@@ -41,6 +41,7 @@
         "assets.h": "c",
         "stdlib.h": "c",
         "permute.h": "c",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "pt_cornell_rp2040_v1_3.h": "c"
     }
 }

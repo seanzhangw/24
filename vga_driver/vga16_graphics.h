@@ -88,7 +88,6 @@ void writeStringBold(char *str);
 // custom modifications:
 
 // x, y is the top left corner
-void pasteImage(unsigned char *image, int image_height, int image_width, short x, short y);
+void pasteImage(const unsigned char *image, int image_height, int image_width, short x, short y);
 
-void moveImage(unsigned char *image, int image_height, int image_width, short x, short y, short new_x, short new_y);
-
+void moveImage(const unsigned char *image, int image_height, int image_width, short x, short y, short new_x, short new_y);

@@ -3,95 +3,115 @@
 #include "game_state.h"
 #include "array_sol.h"
 
-// Initialize the current game state
-GameState currentState = START_MENU;
-int stateChange = 0;
+Player player1 = {START_MENU, {-1, -1, -1, -1}, {0}, false, true};  // Player 1
+Player player2 = {START_MENU, {-1, -1, -1, -1}, {0}, false, false}; // Player 2
 
-int nums[4] = {-1, -1, -1, -1}; // Initialize numbers to -1
-
-#define MAX_LINE_LEN 2048
-#define MAX_LINES 766
-
-void sol_init() {
+void sol_init()
+{
     array_solutions(100);
-    for (int i = 0; i < 100; ++i) {
-        printf("%d %d %d %d\n", arrSol[i][0], arrSol[i][1], arrSol[i][2], arrSol[i][3]);
-    }
 }
 
-void _generateNumbers()
+void _generateNumbers(Player *player)
 {
-    FILE *file = fopen("collection_with_solution_with_methods.txt", "r");
-
-    // Step 1: Count the total number of lines
-    int total_lines = 0;
-    char buffer[MAX_LINE_LEN];
-    while (fgets(buffer, sizeof(buffer), file))
-    {
-        total_lines++;
-    }
-
-    if (total_lines == 0)
-    {
-        printf("No lines found.\n");
-        fclose(file);
-    }
-
-    // Step 2: Pick a random line index
     srand(time(NULL));
-    int random_line_index = rand() % total_lines;
 
-    // Step 3: Read the file again and stop at the random line
-    rewind(file); // Go back to the beginning
-    int current_line = 0;
-    while (fgets(buffer, sizeof(buffer), file))
-    {
-        if (current_line == random_line_index)
-        {
-            break;
-        }
-        current_line++;
-    }
-    fclose(file);
-
-    // Step 4: Parse the line
-    int a, b, c, d, target;
-    if (sscanf(buffer, "%d %d %d %d: [%d]", &a, &b, &c, &d, &target) == 5)
-    {
-        printf("Selected Line: %s\n", buffer);
-        printf("Numbers: %d %d %d %d\n", a, b, c, d);
-        printf("Target: %d\n", target);
-    }
-    else
-    {
-        printf("Failed to parse line: %s\n", buffer);
-    }
-}
-
-void _drawNumbers()
-{
-    char buffer[10];
     for (int i = 0; i < 4; i++)
     {
-        if (nums[i] != -1)
+        player->nums[i] = arrSol[rand() % 100][i];
+    }
+
+    for (int j = 0; j < 4; j++)
+    {
+        // assign the integer value for calculations
+        player->cards[j].value = player->nums[j];
+
+        // Assign a random suit based on the card value
+        switch (rand() % 4)
         {
-            setTextColor2(WHITE, BLACK);
-            setCursor(210 + (i * 80), 400);
-            sprintf(buffer, "%d ", nums[i]);
-            writeStringBig(buffer);
+        case 0:
+            player->cards[j].image = spades[player->nums[j] - 1];
+            break;
+        case 1:
+            player->cards[j].image = hearts[player->nums[j] - 1];
+            break;
+        case 2:
+            player->cards[j].image = diamonds[player->nums[j] - 1];
+            break;
+        case 3:
+            player->cards[j].image = clubs[player->nums[j] - 1];
+            break;
         }
-        else
+        // set initial position of the cards
+        player->cards[j].x = 240;
+        player->cards[j].y = 0;
+
+        // set destination position of the cards
+        int offset = 0;
+        if (!player->onLeft)
         {
-            // blank out the number
-            fillRect(210 + (i * 80), 400, 16, 32, BLACK);
+            offset = 315;
+        }
+        switch (j)
+        {
+        case 0:
+            player->cards[j].destX = offset + 110;
+            player->cards[j].destY = 150;
+            break;
+        case 1:
+            player->cards[j].destX = offset + 5;
+            player->cards[j].destY = 250;
+            break;
+        case 2:
+            player->cards[j].destX = offset + 215;
+            player->cards[j].destY = 250;
+            break;
+        case 3:
+            player->cards[j].destX = offset + 110;
+            player->cards[j].destY = 350;
+            break;
         }
     }
 }
 
-void transitionToState(GameState newState)
+void _drawNumbers(Player *player)
 {
-    currentState = newState;
-    stateChange = 1;
+    for (int i = 0; i < 4; i++)
+    {
+
+        if (player->cards[i].x != player->cards[i].destX || player->cards[i].y != player->cards[i].destY)
+        {
+            int dx = player->cards[i].destX - player->cards[i].x;
+            int dy = player->cards[i].destY - player->cards[i].y;
+
+            int stepX = dx / 5; // Speed decreases as the card gets closer
+            int stepY = dy / 5;
+
+            if (stepX == 0 && dx != 0)
+            {
+                stepX = (dx > 0) ? 1 : -1; // Ensure at least 1 pixel movement
+            }
+
+            if (stepY == 0 && dy != 0)
+            {
+                stepY = (dy > 0) ? 1 : -1; // Ensure at least 1 pixel movement
+            }
+
+            if (player->cards[i].x != player->cards[i].destX || player->cards[i].y != player->cards[i].destY)
+            {
+                moveImage(player->cards[i].image, IMG_HEIGHT, IMG_WIDTH,
+                          player->cards[i].x,
+                          player->cards[i].y,
+                          player->cards[i].x + stepX,
+                          player->cards[i].y + stepY);
+                player->cards[i].x += stepX;
+                player->cards[i].y += stepY;
+            }
+        }
+    }
+}
+
+void transitionToState(Player *player, GameState newState)
+{
 
     switch (newState)
     {
@@ -99,15 +119,16 @@ void transitionToState(GameState newState)
         // Clear the screen
         fillRect(0, 0, 640, 480, BLACK);
         printf("In Start Menu State\n\r");
-        stateChange = 0;
-
+        player1.currentState = START_MENU;
+        player2.currentState = START_MENU;
         break;
     case GAME_PLAYING:
         printf("In Game Playing State\n\r");
         fillRect(0, 0, 640, 480, BLACK);
-        _generateNumbers();
-        _drawNumbers();
-
+        _generateNumbers(&player1);
+        _generateNumbers(&player2);
+        player1.currentState = GAME_PLAYING;
+        player2.currentState = GAME_PLAYING;
         break;
     case GAME_OVER:
         // Clear the screen and display "Game Over!"
@@ -115,23 +136,19 @@ void transitionToState(GameState newState)
         setCursor(248, 200);
         setTextColor2(WHITE, BLACK);
         writeStringBig("Game Over!");
-
+        player1.currentState = GAME_OVER;
+        player2.currentState = GAME_OVER;
         break;
     }
 }
 
-void executeStep()
+void executeStep(Player *player)
 {
-    // Execute the current game state logic
-    switch (currentState)
+    // Execute the current game state logic for the given player
+    switch (player->currentState)
     {
     case START_MENU:
-
-        pasteImage(&tenOfHeart[0][0], IMG_HEIGHT, IMG_WIDTH, 10, 10);
-        //pasteImage(&background[0][0], 639, 479, 10, 10);
-
-        // Logic for start
-
+        pasteImage((const unsigned char *)backOfCard, IMG_HEIGHT, IMG_WIDTH, 10, 10);
         // Blink the text
         if ((time_us_32() / 1000000) % 2 == 0)
         {
@@ -139,9 +156,6 @@ void executeStep()
         }
         else
         {
-            // 340 is the cetner of the screen. "Press any key to start" is 23 characters long.
-            // 23 * 8 = 184. 184 /2 = 92. 340 - 92 = 248.
-
             setCursor(248, 200);
             setTextColor2(WHITE, BLACK);
             writeStringBig("Press any key to start");
@@ -149,20 +163,20 @@ void executeStep()
         break;
     case GAME_PLAYING:
 
-        // NOTE: calculating values currently happens in the serial listener thread, should it be moved to here?
-        _drawNumbers(); // Update the numbers on the screen
+        // Update the numbers on the screen for this player
+        _drawNumbers(player);
 
         // Check if we have a solution
         int contains24 = 0;
         int allNumbersUsed = 1;
         for (int i = 0; i < 4; i++)
         {
-            if (nums[i] == 24)
+            if (player->nums[i] == 24)
             {
                 contains24 = 1;
                 break;
             }
-            else if (nums[i] != -1)
+            else if (player->nums[i] != -1)
             {
                 allNumbersUsed = 0;
             }
@@ -170,11 +184,11 @@ void executeStep()
 
         if (contains24 && allNumbersUsed)
         {
-            transitionToState(GAME_OVER);
+            transitionToState(player, GAME_OVER);
         }
         else if (allNumbersUsed)
         {
-            transitionToState(GAME_OVER);
+            transitionToState(player, GAME_OVER);
         }
         break;
     case GAME_OVER:

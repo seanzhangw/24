@@ -700,7 +700,7 @@ inline void writeStringBold(char *str)
 }
 
 // 640 * 480
-void pasteImage(unsigned char *image, int image_height, int image_width, short x, short y)
+void pasteImage(const unsigned char *image, int image_height, int image_width, short x, short y)
 {
   /* Paste an image at the specified location
    * Parameters:
@@ -719,7 +719,7 @@ void pasteImage(unsigned char *image, int image_height, int image_width, short x
   }
 }
 
-void moveImage(unsigned char *image, int image_height, int image_width, short x, short y, short new_x, short new_y)
+void moveImage(const unsigned char *image, int image_height, int image_width, short x, short y, short new_x, short new_y)
 {
   /* Move an image from one location to another
    * Parameters:
@@ -732,7 +732,43 @@ void moveImage(unsigned char *image, int image_height, int image_width, short x,
    *      new_y:  new y-coordinate of top-left corner of image
    * Returns: Nothing
    */
+  if (x % 2 == 1)
+  {
+    x++;
+  }
+  if (new_x % 2 == 1)
+  {
+    new_x++;
+  }
 
+  if (y % 2 == 1)
+  {
+    y++;
+  }
+  if (new_y % 2 == 1)
+  {
+    new_y++;
+  }
+
+  // Cardinal directions
+  if (new_x > x && new_y == y) // right
+  {
+    fillRect(x, y, new_x - x, image_height, BLACK);
+  }
+  else if (new_x < x && new_y == y) // left
+  {
+    fillRect(new_x + image_width * 2, y, x - new_x, image_height, BLACK);
+  }
+  else if (new_x == x && new_y > y) // down
+  {
+    fillRect(x, y, image_width * 2, new_y - y, BLACK);
+  }
+  else if (new_x == x && new_y < y) // up
+  {
+    fillRect(x, new_y + image_height, image_width * 2, y - new_y, BLACK);
+  }
+
+  // Diagonal directions
   if (new_x > x && new_y > y) // down and to the right
   {
     fillRect(x, y, new_x - x, image_height, BLACK);
@@ -755,5 +791,6 @@ void moveImage(unsigned char *image, int image_height, int image_width, short x,
     fillRect(new_x, new_y + image_height, image_width * 2, y - new_y, BLACK);
   }
   // Paste new image
+
   pasteImage(image, image_height, image_width, new_x, new_y);
 }
