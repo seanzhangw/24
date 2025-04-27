@@ -36,12 +36,15 @@
 #include "hardware/pio.h"
 #include "hardware/dma.h"
 #include "hardware/pll.h"
+#include "hardware/adc.h"
+
 // Include protothreads
 #include "pt_driver/pt_cornell_rp2040_v1_3.h"
 
 // Include game headers
 #include "game_state.h"
 #include "array_sol.h"
+#include "input_handler.h"
 
 #define FRAME_RATE 33000
 
@@ -51,108 +54,110 @@
 static PT_THREAD(protothread_serial(struct pt *pt))
 {
   PT_BEGIN(pt);
-  // stores user input
-  static int user_input;
-  // wait for 0.1 sec
-  PT_YIELD_usec(1000000);
-  // announce the threader version
-  sprintf(pt_serial_out_buffer, "Protothreads RP2040 v1.0\n\r");
-  // non-blocking write
-  serial_write;
   while (1)
   {
-    // print prompt
+    // 0 = 1st card, 1 = operation, 2 = 2nd card
+    int current_stage = 0;
+    int selected_index1 = -1;
+    int selected_op = -1;
+    int selected_index2 = -1;
+
     switch (player1.currentState)
     {
     case START_MENU:
-      sprintf(pt_serial_out_buffer, "Input anything to start game: ");
-      // non-blocking write
-      serial_write;
-      // spawn a thread to do the non-blocking serial read
-      serial_read;
-      // check if any input is received
-      if (strlen(pt_serial_in_buffer) > 0)
-      {
-        transitionToState(&player1, GAME_PLAYING);
-      }
-      break;
-    case GAME_PLAYING:
-      sprintf(pt_serial_out_buffer, "Input two numbers and an operator (e.g., 0 + 1): ");
-      serial_write;
-      serial_read;
+      // Read button inputs
+      int p1_reset = gpio_get(BUTTON_PIN_P1_R);
+      int p1_enter = gpio_get(BUTTON_PIN_P1_E);
+      int p2_reset = gpio_get(BUTTON_PIN_P2_R);
+      int p2_enter = gpio_get(BUTTON_PIN_P2_E);
 
-      int index_1 = 0;
-      int index_2 = 0;
-      // Parse user input for game logic
-      char operation;
-      if (sscanf(pt_serial_in_buffer, "%d %c %d", &index_1, &operation, &index_2) == 3)
+      if (p1_enter == 0 || p1_reset == 0)
       {
-        int result;
-        if (player1.nums[index_1] == -1 || player1.nums[index_2] == -1)
-        {
-          sprintf(pt_serial_out_buffer, "Error: Invalid index\n\r");
-          serial_write;
-          break;
-        }
-        switch (operation)
-        {
-        case '+':
-          result = player1.nums[index_1] + player1.nums[index_2];
-          break;
-        case '-':
-          result = player1.nums[index_1] - player1.nums[index_2];
-          break;
-        case '*':
-          result = player1.nums[index_1] * player1.nums[index_2];
-          break;
-        case '/':
-          result = player1.nums[index_1] / player1.nums[index_2];
-          break;
-        default:
-          sprintf(pt_serial_out_buffer, "Error: Invalid operation\n\r");
-          serial_write;
-          break;
-        }
-        // Draw the result underneath the index_2 number
-        char buffer[10];
-        player1.nums[index_1] = -1;
-        player1.nums[index_2] = result; // Update the number at index_2 with the result
-        // Display the result
-        sprintf(pt_serial_out_buffer, "Result: %d\n\r", result);
-        serial_write;
-      }
-      else if (strcmp(pt_serial_in_buffer, "exit") == 0)
-      {
-        transitionToState(&player1, GAME_OVER);
-      }
-      else if (strcmp(pt_serial_in_buffer, "reset") == 0)
-      {
-        // Reset the game state
         transitionToState(&player1, GAME_PLAYING);
-      }
-      else
-      {
-        sprintf(pt_serial_out_buffer, "Error: Invalid input format. Use 'num1 op num2'\n\r");
-        serial_write;
+        transitionToState(&player2, GAME_PLAYING);
       }
       break;
+
+    case GAME_PLAYING:
+      // Read ADC Inputs
+      adc_select_input(0);
+      int joystick_x = adc_read();
+
+      adc_select_input(1);
+      int joystick_y = adc_read();
+      
+      // User Selection
+      int index = joystickSelect(joystick_x, joystick_y);
+
+      if (index != -1 && p1_enter == 0) {
+        if (current_stage == 0) {
+            selected_index1 = index;
+            current_stage = 1;
+        } else if (current_stage == 1) {
+            selected_op = index;
+            current_stage = 2;
+        } else if (current_stage == 2) {
+            selected_index2 = index;
+        }
+            // Perform operation
+            int num1 = player1.nums[selected_index1];
+            int num2 = player1.nums[selected_index2];
+            char op = operations[selected_op];
+
+            if (num1 != -1 && num2 != -1) {
+              int result = 0;
+              switch (op) {
+              case '+': result = num1 + num2; break;
+              case '-': result = num1 - num2; break;
+              case '*': result = num1 * num2; break;
+              case '/': result = num1 / num2; break;
+              }
+
+              // Update cards
+              player1.nums[selected_index1] = -1;
+              player1.nums[selected_index2] = result;
+              current_stage = 0; // Reset for next round
+            }
+
+      // Reset buttons
+      if (p1_reset == 0)
+      {
+        transitionToState(&player1, GAME_PLAYING);
+        break;
+      } 
+      if (p2_reset == 0)
+      {
+        transitionToState(&player2, GAME_PLAYING);
+        break;
+      }
+      
+      // If operation all finished, check and transition state
+      int active_cards = 0;
+      int value = -1;
+      for (int i = 0; i < 4; i++) {
+        if (player1.nums[i] != -1) {
+          active_cards++;
+          value = player1.nums[i];
+        }
+      }
+      if (active_cards == 1 && value == 24) {
+        transitionToState(&player1, GAME_OVER);
+        break;
+      }
+
     case GAME_OVER:
-      sprintf(pt_serial_out_buffer, "Input anything to restart game: ");
-      // non-blocking write
-      serial_write;
-      // spawn a thread to do the non-blocking serial read
-      serial_read;
-      // check if any input is received
-      if (strlen(pt_serial_in_buffer) > 0)
+      if (p1_enter == 0)
       {
         transitionToState(&player1, START_MENU);
       }
       break;
     }
+
     PT_YIELD_usec(1000); // Yield to other threads
-  } // END WHILE(1)
+    } // END WHILE(1)
   PT_END(pt);
-} // timer thread
+  }
+}
 
 // Animation on core 0
 static PT_THREAD(protothread_anim(struct pt *pt))
@@ -225,6 +230,9 @@ int main()
 
   // initialize solutions
   sol_init();
+
+  // initialize controllers
+  initController();
 
   // start core 1
   multicore_reset_core1();
