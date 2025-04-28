@@ -3,8 +3,8 @@
 #include "game_state.h"
 #include "array_sol.h"
 
-Player player1 = {START_MENU, {-1, -1, -1, -1}, {0}, false, true};  // Player 1
-Player player2 = {START_MENU, {-1, -1, -1, -1}, {0}, false, false}; // Player 2
+Player player1 = {START_MENU, {-1, -1, -1, -1}, {0}, false, true, 3};  // Player 1
+Player player2 = {START_MENU, {-1, -1, -1, -1}, {0}, false, false, 3}; // Player 2
 
 void sol_init()
 {
@@ -73,41 +73,52 @@ void _generateNumbers(Player *player)
     }
 }
 
-void _drawNumbers(Player *player)
+void slideCards(Player *player)
 {
-    for (int i = 0; i < 4; i++)
+    int i = player->cardsShown;
+
+    if (i < 0)
     {
+        return; // All cards have been shown
+    }
+    // for (int j = 0; j < 4; j++)
+    // {
+
+    if (player->cards[i].x != player->cards[i].destX || player->cards[i].y != player->cards[i].destY)
+    {
+        int dx = player->cards[i].destX - player->cards[i].x;
+        int dy = player->cards[i].destY - player->cards[i].y;
+
+        int stepX = dx / 6; // Speed decreases as the card gets closer
+        int stepY = dy / 6;
+
+        if (stepX == 0 && dx != 0)
+        {
+            stepX = (dx > 0) ? 2 : -2; // Ensure at least 1 pixel movement
+        }
+
+        if (stepY == 0 && dy != 0)
+        {
+            stepY = (dy > 0) ? 2 : -2; // Ensure at least 1 pixel movement
+        }
 
         if (player->cards[i].x != player->cards[i].destX || player->cards[i].y != player->cards[i].destY)
         {
-            int dx = player->cards[i].destX - player->cards[i].x;
-            int dy = player->cards[i].destY - player->cards[i].y;
-
-            int stepX = dx / 5; // Speed decreases as the card gets closer
-            int stepY = dy / 5;
-
-            if (stepX == 0 && dx != 0)
-            {
-                stepX = (dx > 0) ? 1 : -1; // Ensure at least 1 pixel movement
-            }
-
-            if (stepY == 0 && dy != 0)
-            {
-                stepY = (dy > 0) ? 1 : -1; // Ensure at least 1 pixel movement
-            }
-
-            if (player->cards[i].x != player->cards[i].destX || player->cards[i].y != player->cards[i].destY)
-            {
-                moveImage(player->cards[i].image, IMG_HEIGHT, IMG_WIDTH,
-                          player->cards[i].x,
-                          player->cards[i].y,
-                          player->cards[i].x + stepX,
-                          player->cards[i].y + stepY);
-                player->cards[i].x += stepX;
-                player->cards[i].y += stepY;
-            }
+            moveImage((const unsigned char *)backOfCard, IMG_HEIGHT, IMG_WIDTH,
+                      player->cards[i].x,
+                      player->cards[i].y,
+                      player->cards[i].x + stepX,
+                      player->cards[i].y + stepY);
+            player->cards[i].x += stepX;
+            player->cards[i].y += stepY;
         }
     }
+    // we have reached the destination
+    else
+    {
+        player->cardsShown--;
+    }
+    // }
 }
 
 void transitionToState(Player *player, GameState newState)
@@ -118,6 +129,7 @@ void transitionToState(Player *player, GameState newState)
     case START_MENU:
         // Clear the screen
         fillRect(0, 0, 640, 480, BLACK);
+        pasteImage((const unsigned char *)backOfCard, IMG_HEIGHT, IMG_WIDTH, 20, 20);
         printf("In Start Menu State\n\r");
         player1.currentState = START_MENU;
         player2.currentState = START_MENU;
@@ -142,13 +154,20 @@ void transitionToState(Player *player, GameState newState)
     }
 }
 
+static float progress = 0.0;
 void executeStep(Player *player)
 {
     // Execute the current game state logic for the given player
     switch (player->currentState)
     {
     case START_MENU:
-        pasteImage((const unsigned char *)backOfCard, IMG_HEIGHT, IMG_WIDTH, 10, 10);
+        // tolerance for floating point comparison
+        if (progress <= 1. + 0.01)
+        {
+            flipImage((const unsigned char *)backOfCard, IMG_HEIGHT, IMG_WIDTH, 20, 20, (const unsigned char *)aceOfClub, progress);
+            progress += 0.05;
+        }
+
         // Blink the text
         if ((time_us_32() / 1000000) % 2 == 0)
         {
@@ -164,8 +183,7 @@ void executeStep(Player *player)
     case GAME_PLAYING:
 
         // Update the numbers on the screen for this player
-        _drawNumbers(player);
-
+        slideCards(player);
         // Check if we have a solution
         int contains24 = 0;
         int allNumbersUsed = 1;

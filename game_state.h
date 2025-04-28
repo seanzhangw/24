@@ -22,8 +22,10 @@ typedef struct
     int y;
     int destX;
     int destY;
+    float flipProgress;
 } Card;
 
+// all data related to player and their display
 typedef struct
 {
     GameState currentState;
@@ -31,6 +33,7 @@ typedef struct
     Card cards[4];       // Array to hold the cards
     bool inputAvailable; // Flag to indicate if input is available
     bool onLeft;         // Flag to indicate if the player is on the left side
+    int cardsShown;      // Progress for flipping the card
 } Player;
 
 extern Player player1; // Player 1

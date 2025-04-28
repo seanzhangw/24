@@ -15,6 +15,8 @@
 #include "glcdfont.c"
 #include "font_rom_brl4.h"
 
+#include "../utils/map.h"
+
 // VGA timing constants
 #define H_ACTIVE 655   // (active + frontporch - 1) - one cycle delay for mov
 #define V_ACTIVE 479   // (active - 1)
@@ -198,6 +200,14 @@ void drawHLine(short x, short y, short w, char color)
   for (short i = x; i < (x + w); i++)
   {
     drawPixel(i, y, color);
+  }
+}
+
+void drawHLineCustom(short x, short y, short w, const char *array)
+{
+  for (short i = 0; i < w; i++)
+  {
+    drawPixel(x + i, y, array[i]);
   }
 }
 
@@ -491,6 +501,37 @@ void fillRect(short x, short y, short w, short h, char color)
     for (int j = y; j < (y + h); j++)
     {
       drawPixel(i, j, color);
+    }
+  }
+}
+
+void fillRectCustom(short x, short y, short w, short h, const char *array)
+{
+  /* Draw a filled rectangle with starting top-left vertex (x,y),
+   *  width w and height h with given color
+   * Parameters:
+   *      x:  x-coordinate of top-left vertex; top left of screen is x=0
+   *              and x increases to the right
+   *      y:  y-coordinate of top-left vertex; top left of screen is y=0
+   *              and y increases to the bottom
+   *      w:  width of rectangle
+   *      h:  height of rectangle
+   *      color:  3-bit color value
+   * Returns:     Nothing
+   */
+
+  // rudimentary clipping (drawChar w/big text requires this)
+  // if((x >= _width) || (y >= _height)) return;
+  // if((x + w - 1) >= _width)  w = _width  - x;
+  // if((y + h - 1) >= _height) h = _height - y;
+
+  // tft_setAddrWindow(x, y, x+w-1, y+h-1);
+
+  for (int i = x; i < (x + w); i++)
+  {
+    for (int j = y; j < (y + h); j++)
+    {
+      drawPixel(i, j, array[i]);
     }
   }
 }
@@ -793,4 +834,79 @@ void moveImage(const unsigned char *image, int image_height, int image_width, sh
   // Paste new image
 
   pasteImage(image, image_height, image_width, new_x, new_y);
+}
+
+void flipImage(const unsigned char *top_image, int image_height, int image_width, short x, short y, const unsigned char *bottom_image, float progress)
+{
+  /* Flip an image vertically with a progress factor. Flips by turning to a trapezoid.
+   * Parameters:
+   *      top_image: pointer to the top image data
+   *      image_height: height of the image (the actual image will be 2* the height since we encode two pixels into each byte)
+   *      image_width: width of the image (the actual image will be 2* the width since we encode two pixels into each byte)
+   *      x: x-coordinate of the top-left corner of the image
+   *      y: y-coordinate of the top-left corner of the image
+   *      bottom_image: pointer to the bottom image data
+   *      progress: a float value between 0.0 and 1.0 indicating the progress of the flip
+   * Returns: Nothing
+   */
+  // multipliers for the dimensions of the trapezoid
+  float right_base;
+  float left_base;
+  float height;
+  int x_offset = 0;
+  // between 0 and 0.5, we are flipping to the right (left side is growing)
+  if (progress < 0.5)
+  {
+    left_base = map(progress, 0.0, 0.5, 1, 1.25);
+    right_base = map(progress, 0.0, 0.5, 1, 0.75);
+    height = map(progress, 0.0, 0.5, 1, 0);
+    x_offset = map(progress, 0.0, 0.5, 0, image_width);
+
+    // draw the trapezoid in three parts
+    int trapezoid_height = height * image_width * 2;
+    int triangle_base = ((left_base * image_height) - image_height) / 2;
+    int triangleStep = trapezoid_height / triangle_base;
+
+    // 1. top right triangle
+    int accumulator = 0;
+    for (int i = 0; i < triangle_base; i++)
+    {
+      drawHLineCustom(x + x_offset, (y - triangle_base) + i, accumulator, top_image);
+      accumulator += triangleStep;
+    }
+    // 2. middle rectangle
+    // fillRectCustom(x + x_offset, y, trapezoid_height, image_height, top_image);
+    pasteImage(top_image, image_height, trapezoid_height / 2, x + x_offset, y);
+    // 3. bottom right triangle
+    accumulator = trapezoid_height;
+    for (int i = 0; i < triangle_base; i++)
+    {
+      drawHLineCustom(x + x_offset, (y + image_height) + i, accumulator, top_image);
+      accumulator -= triangleStep;
+    }
+
+    // clear past artifacts
+    fillRect(x, y - triangle_base, x + x_offset, image_height + (triangle_base) * 2, BLACK);
+    fillRect(x + x_offset + trapezoid_height, y - triangle_base, image_width * 2 - trapezoid_height, image_height + (triangle_base) * 2, BLACK);
+  }
+  // between 0.5 and 1.0, we are flipping to the left (right side is growing)
+  else
+  {
+    left_base = map(progress, 0.5, 1.0, 0.75, 1);
+    right_base = map(progress, 0.5, 1.0, 1.25, 1);
+    height = map(progress, 0.5, 1.0, 0, 1);
+    x_offset = map(progress, 0.5, 1.0, image_width, 0);
+
+    // // draw the trapezoid in three parts
+    int trapezoid_height = height * image_width * 2;
+    // int triangle_base = ((right_base * image_height) - image_height) / 2;
+    // int triangleStep = trapezoid_height / triangle_base;
+    // // 1. top triangle
+
+    // // 2. middle rectangle
+    // fillRect(x + x_offset, y, trapezoid_height, image_height, WHITE);
+    pasteImage(bottom_image, image_height, trapezoid_height / 2, x + x_offset, y);
+
+    // 3. bottom triangle
+  }
 }

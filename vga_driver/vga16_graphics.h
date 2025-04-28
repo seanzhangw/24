@@ -91,3 +91,5 @@ void writeStringBold(char *str);
 void pasteImage(const unsigned char *image, int image_height, int image_width, short x, short y);
 
 void moveImage(const unsigned char *image, int image_height, int image_width, short x, short y, short new_x, short new_y);
+
+void flipImage(const unsigned char *top_image, int image_height, int image_width, short x, short y, const unsigned char *bottom_image, float progress);
