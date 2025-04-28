@@ -25,6 +25,12 @@ typedef struct
     float flipProgress;
 } Card;
 
+typedef enum {
+    SELECT_NUM1,
+    SELECT_OP,
+    SELECT_NUM2
+  } stage;
+
 // all data related to player and their display
 typedef struct
 {
@@ -34,6 +40,7 @@ typedef struct
     bool inputAvailable; // Flag to indicate if input is available
     bool onLeft;         // Flag to indicate if the player is on the left side
     int cardsShown;      // Progress for flipping the card
+    stage opStage;       // Where each player is when performing operation
 } Player;
 
 extern Player player1; // Player 1
@@ -42,5 +49,7 @@ extern Player player2; // Player 2
 void transitionToState(Player *player, GameState newState);
 
 void executeStep(Player *player);
+
+void cardSelect(Player *player);
 
 void sol_init();

@@ -2,14 +2,151 @@
 
 #include "game_state.h"
 #include "array_sol.h"
+#include "input_handler.h"
 
-Player player1 = {START_MENU, {-1, -1, -1, -1}, {0}, false, true, 3};  // Player 1
-Player player2 = {START_MENU, {-1, -1, -1, -1}, {0}, false, false, 3}; // Player 2
+Player player1 = {START_MENU, {-1, -1, -1, -1}, {0}, false, true, 3, SELECT_NUM1};  // Player 1
+Player player2 = {START_MENU, {-1, -1, -1, -1}, {0}, false, false, 3, SELECT_NUM1}; // Player 2
+
+int num1 = 0;
+int num2 = 0;
+char op = 0;
+
 
 void sol_init()
 {
     array_solutions(100);
 }
+
+void cardSelect(Player *player) {
+    printf("current state: %d\n", player->currentState);
+    int selected_index1 = -1;
+    int selected_op = -1;
+    int selected_index2 = -1;
+    // intermidate variable
+    switch (player->currentState)
+    {
+    case START_MENU:
+        printf("in start menu\n");
+        // Read button inputs
+        if (gpio_get(BUTTON_PIN_P1_E) == 0 || gpio_get(BUTTON_PIN_P1_R) == 0)
+        {
+            while (gpio_get(BUTTON_PIN_P1_E) == 0 || gpio_get(BUTTON_PIN_P1_R) == 0);
+
+            transitionToState(player, GAME_PLAYING);
+            // current_stage = 0;
+            // selected_index1 = -1;
+            // selected_op = -1;
+            // selected_index2 = -1;    
+
+            num1 = 0;
+            num2 = 0;
+            op = ' ';
+        }
+        break;
+
+    case GAME_PLAYING:
+        printf("in game palying\n");
+        // Read ADC Inputs
+        adc_select_input(ADC_CHAN0);
+        int joystick_x = adc_read();
+
+        adc_select_input(ADC_CHAN1);
+        int joystick_y = adc_read();
+
+        // User Selection
+        int index = joystickSelect(joystick_x, joystick_y);
+
+        if (index != -1 && gpio_get(BUTTON_PIN_P1_E) == 0)
+        {
+            while (gpio_get(BUTTON_PIN_P1_E) == 0);
+
+            printf("op stage: %d\n", player->opStage);
+
+            if (player->opStage == SELECT_NUM1) {
+                selected_index1 = index;
+                num1 = player->nums[index];
+                player->opStage = SELECT_OP;
+                printf("num1: %d\n", num1);
+            } else if (player->opStage == SELECT_OP) {
+                selected_op = index;
+                op = operations[index];
+                player->opStage = SELECT_NUM2;
+                printf("op: %c\n", op);
+            } else if (player->opStage == SELECT_NUM2) {
+                selected_index2 = index;
+                num2 = player->nums[index];
+                printf("num2: %d\n", num2);
+            }
+
+            // Perform operation
+            if (num1 != 0 && num2 != 0)
+            {
+                printf("in operation\n");
+                int result = 0;
+                switch (op)
+                {
+                case '+':
+                    result = num1 + num2;
+                    break;
+                case '-':
+                    result = num1 - num2;
+                    break;
+                case '*':
+                    result = num1 * num2;
+                    break;
+                case '/':
+                    result = num1 / num2;
+                    break;
+                }
+
+                // Update cards
+                player->nums[selected_index1] = -1;
+                player->nums[selected_index2] = result;
+                printf("result: %d\n", result);
+                player->opStage = SELECT_NUM1; // Reset for next round
+                num1 = 0;
+                num2 = 0;
+                op = ' ';
+                // printf("%d\n", player->opStage);
+            }
+
+            // Reset buttons
+            if (gpio_get(BUTTON_PIN_P1_R) == 0)
+            {
+                transitionToState(player, GAME_PLAYING);
+                break;
+            }
+
+            // // If operation all finished, check and transition state
+            // int active_cards = 0;
+            // int value = -1;
+            // for (int i = 0; i < 4; i++)
+            // {
+            //     if (player->nums[i] != -1)
+            //     {
+            //         active_cards++;
+            //         value = player->nums[i];
+            //     }
+            // }
+            // if (active_cards == 1 && value == 24)
+            // {
+            //     transitionToState(player, GAME_OVER);
+            //     printf("inside finish stage\n");
+            //     break;
+            // }
+        }
+        break;
+    case GAME_OVER:
+        printf("in game over\n");
+        if (gpio_get(BUTTON_PIN_P1_E) == 0)
+        {
+        printf("in game over\n");
+        transitionToState(player, START_MENU);
+        }
+        break;
+    }
+}
+
 
 void _generateNumbers(Player *player)
 {
@@ -57,15 +194,15 @@ void _generateNumbers(Player *player)
             player->cards[j].destX = offset + 110;
             player->cards[j].destY = 150;
             break;
-        case 1:
+        case 2:
             player->cards[j].destX = offset + 5;
             player->cards[j].destY = 250;
             break;
-        case 2:
+        case 3:
             player->cards[j].destX = offset + 215;
             player->cards[j].destY = 250;
             break;
-        case 3:
+        case 1:
             player->cards[j].destX = offset + 110;
             player->cards[j].destY = 350;
             break;
@@ -75,50 +212,40 @@ void _generateNumbers(Player *player)
 
 void slideCards(Player *player)
 {
-    int i = player->cardsShown;
 
-    if (i < 0)
+    for (int i = 0; i < 4; i++)
     {
-        return; // All cards have been shown
-    }
-    // for (int j = 0; j < 4; j++)
-    // {
-
-    if (player->cards[i].x != player->cards[i].destX || player->cards[i].y != player->cards[i].destY)
-    {
-        int dx = player->cards[i].destX - player->cards[i].x;
-        int dy = player->cards[i].destY - player->cards[i].y;
-
-        int stepX = dx / 6; // Speed decreases as the card gets closer
-        int stepY = dy / 6;
-
-        if (stepX == 0 && dx != 0)
-        {
-            stepX = (dx > 0) ? 2 : -2; // Ensure at least 1 pixel movement
-        }
-
-        if (stepY == 0 && dy != 0)
-        {
-            stepY = (dy > 0) ? 2 : -2; // Ensure at least 1 pixel movement
-        }
 
         if (player->cards[i].x != player->cards[i].destX || player->cards[i].y != player->cards[i].destY)
         {
-            moveImage((const unsigned char *)backOfCard, IMG_HEIGHT, IMG_WIDTH,
-                      player->cards[i].x,
-                      player->cards[i].y,
-                      player->cards[i].x + stepX,
-                      player->cards[i].y + stepY);
-            player->cards[i].x += stepX;
-            player->cards[i].y += stepY;
+            int dx = player->cards[i].destX - player->cards[i].x;
+            int dy = player->cards[i].destY - player->cards[i].y;
+
+            int stepX = dx / 6; // Speed decreases as the card gets closer
+            int stepY = dy / 6;
+
+            if (stepX == 0 && dx != 0)
+            {
+                stepX = (dx > 0) ? 1 : -1; // Ensure at least 1 pixel movement
+            }
+
+            if (stepY == 0 && dy != 0)
+            {
+                stepY = (dy > 0) ? 1 : -1; // Ensure at least 1 pixel movement
+            }
+
+            if (player->cards[i].x != player->cards[i].destX || player->cards[i].y != player->cards[i].destY)
+            {
+                moveImage((const unsigned char *)player->cards[i].image, IMG_HEIGHT, IMG_WIDTH,
+                        player->cards[i].x,
+                        player->cards[i].y,
+                        player->cards[i].x + stepX,
+                        player->cards[i].y + stepY);
+                player->cards[i].x += stepX;
+                player->cards[i].y += stepY;
+            }
         }
     }
-    // we have reached the destination
-    else
-    {
-        player->cardsShown--;
-    }
-    // }
 }
 
 void transitionToState(Player *player, GameState newState)
@@ -185,29 +312,29 @@ void executeStep(Player *player)
         // Update the numbers on the screen for this player
         slideCards(player);
         // Check if we have a solution
-        int contains24 = 0;
-        int allNumbersUsed = 1;
-        for (int i = 0; i < 4; i++)
-        {
-            if (player->nums[i] == 24)
-            {
-                contains24 = 1;
-                break;
-            }
-            else if (player->nums[i] != -1)
-            {
-                allNumbersUsed = 0;
-            }
-        }
+        // int contains24 = 0;
+        // int allNumbersUsed = 1;
+        // for (int i = 0; i < 4; i++)
+        // {
+        //     if (player->nums[i] == 24)
+        //     {
+        //         contains24 = 1;
+        //         break;
+        //     }
+        //     else if (player->nums[i] != -1)
+        //     {
+        //         allNumbersUsed = 0;
+        //     }
+        // }
 
-        if (contains24 && allNumbersUsed)
-        {
-            transitionToState(player, GAME_OVER);
-        }
-        else if (allNumbersUsed)
-        {
-            transitionToState(player, GAME_OVER);
-        }
+        // if (contains24 && allNumbersUsed)
+        // {
+        //     transitionToState(player, GAME_OVER);
+        // }
+        // else if (allNumbersUsed)
+        // {
+        //     transitionToState(player, GAME_OVER);
+        // }
         break;
     case GAME_OVER:
         // Logic for game over

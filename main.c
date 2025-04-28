@@ -49,129 +49,24 @@
 #define FRAME_RATE 33000
 
 // ==================================================
-// === users serial input thread
+// === game controller thread
 // ==================================================
 static PT_THREAD(protothread_serial(struct pt *pt))
 {
   PT_BEGIN(pt);
+
+  static int begin_time;
+  static int spare_time;
   while (1)
   {
-    // 0 = 1st card, 1 = operation, 2 = 2nd card
-    int current_stage = 0;
-    int selected_index1 = -1;
-    int selected_op = -1;
-    int selected_index2 = -1;
+      begin_time = time_us_32();
 
-    switch (player1.currentState)
-    {
-    case START_MENU:
-      // Read button inputs
+      cardSelect(&player1);
+      spare_time = FRAME_RATE - (time_us_32() - begin_time);
 
-      if (gpio_get(BUTTON_PIN_P1_E) == 0 || gpio_get(BUTTON_PIN_P1_R) == 0)
-      {
-        transitionToState(&player1, GAME_PLAYING);
-        transitionToState(&player2, GAME_PLAYING);
-      }
-      break;
-
-    case GAME_PLAYING:
-      // Read ADC Inputs
-      adc_select_input(ADC_CHAN0);
-      int joystick_x = adc_read();
-
-      adc_select_input(ADC_CHAN1);
-      int joystick_y = adc_read();
-
-      // User Selection
-      int index = joystickSelect(joystick_x, joystick_y);
-
-      if (index != -1 && gpio_get(BUTTON_PIN_P1_E) == 0)
-      {
-        if (current_stage == 0)
-        {
-          selected_index1 = index;
-          current_stage = 1;
-        }
-        else if (current_stage == 1)
-        {
-          selected_op = index;
-          current_stage = 2;
-        }
-        else if (current_stage == 2)
-        {
-          selected_index2 = index;
-        }
-
-        // Perform operation
-        int num1 = player1.nums[selected_index1];
-        int num2 = player1.nums[selected_index2];
-        char op = operations[selected_op];
-
-        if (num1 != -1 && num2 != -1)
-        {
-          int result = 0;
-          switch (op)
-          {
-          case '+':
-            result = num1 + num2;
-            break;
-          case '-':
-            result = num1 - num2;
-            break;
-          case '*':
-            result = num1 * num2;
-            break;
-          case '/':
-            result = num1 / num2;
-            break;
-          }
-
-          // Update cards
-          player1.nums[selected_index1] = -1;
-          player1.nums[selected_index2] = result;
-          current_stage = 0; // Reset for next round
-        }
-        // Reset buttons
-        if (gpio_get(BUTTON_PIN_P1_R) == 0)
-        {
-          transitionToState(&player1, GAME_PLAYING);
-          break;
-        }
-        if (gpio_get(BUTTON_PIN_P2_R) == 0)
-        {
-          transitionToState(&player2, GAME_PLAYING);
-          break;
-        }
-
-        // If operation all finished, check and transition state
-        int active_cards = 0;
-        int value = -1;
-        for (int i = 0; i < 4; i++)
-        {
-          if (player1.nums[i] != -1)
-          {
-            active_cards++;
-            value = player1.nums[i];
-          }
-        }
-        if (active_cards == 1 && value == 24)
-        {
-          transitionToState(&player1, GAME_OVER);
-          break;
-        }
-
-      case GAME_OVER:
-        if (gpio_get(BUTTON_PIN_P1_E) == 0)
-        {
-          transitionToState(&player1, START_MENU);
-        }
-        break;
-      }
-
-      PT_YIELD_usec(1000); // Yield to other threads
-    } // END WHILE(1)
-    PT_END(pt);
-  }
+      PT_YIELD_usec(spare_time);
+  } // END WHILE(1)
+  PT_END(pt);
 }
 
 // Animation on core 0
