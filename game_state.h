@@ -67,3 +67,5 @@ void cardSelect(Player *player);
 void sol_init();
 
 void handle_card_select(Player *player, bool enterPressed, int index);
+
+void reset_level(Player *player);

@@ -98,7 +98,7 @@ static PT_THREAD(protothread_serial(struct pt *pt))
         // ghetto debouncing
         while (gpio_get(BUTTON_PIN_P1_R) == 0)
           ;
-        // reset_game();
+        reset_level(&player1);
       }
       break;
     case GAME_OVER:

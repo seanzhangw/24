@@ -37,16 +37,35 @@ void sol_init()
     array_solutions(100);
 }
 
+void reset_level(Player *player)
+{
+    // restore default card states
+    player->opStage = SELECT_NUM1;
+    player->num1 = -1;
+    player->num2 = -1;
+    player->op = ' ';
+
+    for (int i = 0; i < 4; i++)
+    {
+        player->nums[i] = player->cards[i].value; // restore the numbers
+        player->cards[i].state = DEFAULT;
+        // draw cards
+        pasteImage(player->cards[i].image, IMG_HEIGHT, IMG_WIDTH,
+                   player->cards[i].x, player->cards[i].y);
+    }
+}
+
 void handle_card_select(Player *player, bool enterPressed, int index)
 {
+    // if enter is pressed, that means a number is selected
     if (enterPressed)
     {
+        // check which stage of operation we are on
         switch (player->opStage)
         {
         case SELECT_NUM1:
-            if (player->nums[index] == -1)
+            if (player->cards[index].state == SELECTED || player->cards[index].state == USED)
                 return;
-
             player->num1 = player->nums[index]; // remove the number from the array
             player->nums[index] = -1;
             player->cards[index].state = SELECTED; // mark the card as selected
@@ -60,13 +79,15 @@ void handle_card_select(Player *player, bool enterPressed, int index)
             drawCharBig(PLAYER1_CARD0_X + IMG_WIDTH, PLAYER1_CARD2_Y + IMG_HEIGHT / 2, operations[index], WHITE, BLACK);
             break;
         case SELECT_NUM2:
-            if (player->nums[index] == -1)
+            if (player->cards[index].state == SELECTED || player->cards[index].state == USED)
                 return;
+            player->num2 = player->nums[index]; // remove the number from the array
+            player->nums[index] = -1;           // remove the number from the array
 
-            player->num2 = player->nums[index];  // remove the number from the array
-            player->nums[index] = -1;            // remove the number from the array
-            player->cards[index].state = RESULT; // mark the card as used
-
+            // NOTE: this case handles
+            // 1) performing the operation on the selected numbers
+            // 2) erasing the selected cards and drawing the result
+            // 3) checking if 24 has been made
             // perform the operation
             switch (player->op)
             {
@@ -94,12 +115,14 @@ void handle_card_select(Player *player, bool enterPressed, int index)
             // erase the card
             for (int i = 0; i < 4; i++)
             {
-                if (player->cards[i].state == RESULT || player->cards[i].state == SELECTED)
+                if (i == index || player->cards[i].state == SELECTED)
                 {
                     fillRect(player->cards[i].x - 2, player->cards[i].y - 2,
                              2 * IMG_WIDTH + 4, IMG_HEIGHT + 4, BLACK); // erase the card
                     if (player->cards[i].state == SELECTED)
                         player->cards[i].state = USED;
+                    else
+                        player->cards[i].state = RESULT;
                 }
             }
             // erase the operator
@@ -110,8 +133,24 @@ void handle_card_select(Player *player, bool enterPressed, int index)
             setCursor(player->cards[index].x + IMG_WIDTH, player->cards[index].y + IMG_HEIGHT / 2);
             writeStringBig(buffer);        // write the result
             player->opStage = SELECT_NUM1; // move to the first stage
+
+            // check if the result is 24
+            if (player->nums[index] == 24)
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    // if we have remaining cards, keep the gameplay going
+                    if (i != index && (player->cards[i].state == SELECTED || player->cards[i].state == DEFAULT || player->cards[i].state == RESULT))
+                    {
+                        return;
+                    }
+                }
+                // if we have no remaining cards, we have a winner
+                transitionToState(player, GAME_OVER); // transition to game over state
+            }
         }
     }
+    // this case is the highlight card case
     else if (player->opStage != SELECT_OP)
     {
         for (int i = 0; i < 4; i++)
