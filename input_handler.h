@@ -29,7 +29,6 @@
 #define DEADZONE 1000 // reduce noise
 #define CENTER 2048
 
-extern char operations[];
 
 void initController();
 

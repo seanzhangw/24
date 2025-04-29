@@ -14,6 +14,13 @@ typedef enum
     GAME_OVER
 } GameState;
 
+typedef enum
+{
+    DEFAULT,
+    SELECTED,
+    USED,
+    RESULT
+} CardState;
 typedef struct
 {
     int value;
@@ -23,25 +30,30 @@ typedef struct
     int destX;
     int destY;
     float flipProgress;
+    CardState state;
 } Card;
 
-typedef enum {
+typedef enum
+{
     SELECT_NUM1,
     SELECT_OP,
     SELECT_NUM2
-  } stage;
+} stage;
 
 // all data related to player and their display
 typedef struct
 {
     GameState currentState;
-    int nums[4];         // Array to hold the numbers
-    Card cards[4];       // Array to hold the cards
-    bool inputAvailable; // Flag to indicate if input is available
-    bool onLeft;         // Flag to indicate if the player is on the left side
-    int cardsShown;      // Progress for flipping the card
-    stage opStage;       // Where each player is when performing operation
+    int nums[4];   // Array to hold the numbers
+    Card cards[4]; // Array to hold the cards
+    bool onLeft;   // True if player is on left side of screen
+    int num1;
+    int num2;
+    char op;
+    stage opStage; // Where each player is when performing operation
 } Player;
+
+extern char operations[];
 
 extern Player player1; // Player 1
 extern Player player2; // Player 2
@@ -53,3 +65,5 @@ void executeStep(Player *player);
 void cardSelect(Player *player);
 
 void sol_init();
+
+void handle_card_select(Player *player, bool enterPressed, int index);

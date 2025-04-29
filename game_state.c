@@ -4,149 +4,134 @@
 #include "array_sol.h"
 #include "input_handler.h"
 
-Player player1 = {START_MENU, {-1, -1, -1, -1}, {0}, false, true, 3, SELECT_NUM1};  // Player 1
-Player player2 = {START_MENU, {-1, -1, -1, -1}, {0}, false, false, 3, SELECT_NUM1}; // Player 2
+char operations[] = {'+', '-', '*', '/'};
 
-int num1 = 0;
-int num2 = 0;
-char op = 0;
+// typedef struct
+// {
+//     GameState currentState;
+//     int nums[4];         // Array to hold the numbers
+//     Card cards[4];       // Array to hold the cards
+//     bool onLeft;         // True if player is on left side of screen
+//     int num1;
+//     int num2;
+//     char op;
+//     stage opStage; // Where each player is when performing operation
+// } Player;
 
+#define PLAYER1_CARD0_X 110
+#define PLAYER1_CARD0_Y 150
+#define PLAYER1_CARD1_X 110
+#define PLAYER1_CARD1_Y 350
+#define PLAYER1_CARD2_X 5
+#define PLAYER1_CARD2_Y 250
+#define PLAYER1_CARD3_X 215
+#define PLAYER1_CARD3_Y 250
+
+#define CARD_X_OFFSET 315
+
+Player player1 = {START_MENU, {-1, -1, -1, -1}, {0}, true, -1, -1, ' ', SELECT_NUM1};  // Player 1
+Player player2 = {START_MENU, {-1, -1, -1, -1}, {0}, false, -1, -1, ' ', SELECT_NUM1}; // Player 2
 
 void sol_init()
 {
     array_solutions(100);
 }
 
-void cardSelect(Player *player) {
-    printf("current state: %d\n", player->currentState);
-    int selected_index1 = -1;
-    int selected_op = -1;
-    int selected_index2 = -1;
-    // intermidate variable
-    switch (player->currentState)
+void handle_card_select(Player *player, bool enterPressed, int index)
+{
+    if (enterPressed)
     {
-    case START_MENU:
-        printf("in start menu\n");
-        // Read button inputs
-        if (gpio_get(BUTTON_PIN_P1_E) == 0 || gpio_get(BUTTON_PIN_P1_R) == 0)
+        switch (player->opStage)
         {
-            while (gpio_get(BUTTON_PIN_P1_E) == 0 || gpio_get(BUTTON_PIN_P1_R) == 0);
+        case SELECT_NUM1:
+            if (player->nums[index] == -1)
+                return;
 
-            transitionToState(player, GAME_PLAYING);
-            // current_stage = 0;
-            // selected_index1 = -1;
-            // selected_op = -1;
-            // selected_index2 = -1;    
+            player->num1 = player->nums[index]; // remove the number from the array
+            player->nums[index] = -1;
+            player->cards[index].state = SELECTED; // mark the card as selected
+            player->opStage = SELECT_OP;           // move to the next stage
+            drawRect(player->cards[index].x - 2, player->cards[index].y - 2,
+                     2 * IMG_WIDTH + 4, IMG_HEIGHT + 4, BLUE); // draw a card outline
+            break;
+        case SELECT_OP:
+            player->op = operations[index]; // remove the number from the array
+            player->opStage = SELECT_NUM2;  // move to the next stage
+            drawCharBig(PLAYER1_CARD0_X + IMG_WIDTH, PLAYER1_CARD2_Y + IMG_HEIGHT / 2, operations[index], WHITE, BLACK);
+            break;
+        case SELECT_NUM2:
+            if (player->nums[index] == -1)
+                return;
 
-            num1 = 0;
-            num2 = 0;
-            op = ' ';
-        }
-        break;
+            player->num2 = player->nums[index];  // remove the number from the array
+            player->nums[index] = -1;            // remove the number from the array
+            player->cards[index].state = RESULT; // mark the card as used
 
-    case GAME_PLAYING:
-        printf("in game palying\n");
-        // Read ADC Inputs
-        adc_select_input(ADC_CHAN0);
-        int joystick_x = adc_read();
-
-        adc_select_input(ADC_CHAN1);
-        int joystick_y = adc_read();
-
-        // User Selection
-        int index = joystickSelect(joystick_x, joystick_y);
-
-        if (index != -1 && gpio_get(BUTTON_PIN_P1_E) == 0)
-        {
-            while (gpio_get(BUTTON_PIN_P1_E) == 0);
-
-            printf("op stage: %d\n", player->opStage);
-
-            if (player->opStage == SELECT_NUM1) {
-                selected_index1 = index;
-                num1 = player->nums[index];
-                player->opStage = SELECT_OP;
-                printf("num1: %d\n", num1);
-            } else if (player->opStage == SELECT_OP) {
-                selected_op = index;
-                op = operations[index];
-                player->opStage = SELECT_NUM2;
-                printf("op: %c\n", op);
-            } else if (player->opStage == SELECT_NUM2) {
-                selected_index2 = index;
-                num2 = player->nums[index];
-                printf("num2: %d\n", num2);
-            }
-
-            // Perform operation
-            if (num1 != 0 && num2 != 0)
+            // perform the operation
+            switch (player->op)
             {
-                printf("in operation\n");
-                int result = 0;
-                switch (op)
+            case '+':
+                player->nums[index] = player->num1 + player->num2; // add the two numbers
+                break;
+            case '-':
+                player->nums[index] = player->num1 - player->num2; // subtract the two numbers
+                break;
+            case '*':
+                player->nums[index] = player->num1 * player->num2; // multiply the two numbers
+                break;
+            case '/':
+                if (player->num2 != 0)
                 {
-                case '+':
-                    result = num1 + num2;
-                    break;
-                case '-':
-                    result = num1 - num2;
-                    break;
-                case '*':
-                    result = num1 * num2;
-                    break;
-                case '/':
-                    result = num1 / num2;
-                    break;
+                    player->nums[index] = player->num1 / player->num2; // divide the two numbers
                 }
-
-                // Update cards
-                player->nums[selected_index1] = -1;
-                player->nums[selected_index2] = result;
-                printf("result: %d\n", result);
-                player->opStage = SELECT_NUM1; // Reset for next round
-                num1 = 0;
-                num2 = 0;
-                op = ' ';
-                // printf("%d\n", player->opStage);
-            }
-
-            // Reset buttons
-            if (gpio_get(BUTTON_PIN_P1_R) == 0)
-            {
-                transitionToState(player, GAME_PLAYING);
+                else
+                {
+                    // TODO: handle division by zero gracefully
+                }
                 break;
             }
 
-            // // If operation all finished, check and transition state
-            // int active_cards = 0;
-            // int value = -1;
-            // for (int i = 0; i < 4; i++)
-            // {
-            //     if (player->nums[i] != -1)
-            //     {
-            //         active_cards++;
-            //         value = player->nums[i];
-            //     }
-            // }
-            // if (active_cards == 1 && value == 24)
-            // {
-            //     transitionToState(player, GAME_OVER);
-            //     printf("inside finish stage\n");
-            //     break;
-            // }
+            // erase the card
+            for (int i = 0; i < 4; i++)
+            {
+                if (player->cards[i].state == RESULT || player->cards[i].state == SELECTED)
+                {
+                    fillRect(player->cards[i].x - 2, player->cards[i].y - 2,
+                             2 * IMG_WIDTH + 4, IMG_HEIGHT + 4, BLACK); // erase the card
+                    if (player->cards[i].state == SELECTED)
+                        player->cards[i].state = USED;
+                }
+            }
+            // erase the operator
+            fillRect(PLAYER1_CARD0_X + IMG_WIDTH, PLAYER1_CARD2_Y + IMG_HEIGHT / 2, 10, 10, BLACK);
+
+            char buffer[2];
+            sprintf(buffer, "%d", player->nums[index]); // convert the number to a string
+            setCursor(player->cards[index].x + IMG_WIDTH, player->cards[index].y + IMG_HEIGHT / 2);
+            writeStringBig(buffer);        // write the result
+            player->opStage = SELECT_NUM1; // move to the first stage
         }
-        break;
-    case GAME_OVER:
-        printf("in game over\n");
-        if (gpio_get(BUTTON_PIN_P1_E) == 0)
+    }
+    else if (player->opStage != SELECT_OP)
+    {
+        for (int i = 0; i < 4; i++)
         {
-        printf("in game over\n");
-        transitionToState(player, START_MENU);
+            if (player->cards[i].state != SELECTED && player->cards[i].state != USED)
+            {
+                if (i != index)
+                {
+                    drawRect(player->cards[i].x - 2, player->cards[i].y - 2,
+                             2 * IMG_WIDTH + 4, IMG_HEIGHT + 4, BLACK); // erase the outline
+                }
+                else
+                {
+                    drawRect(player->cards[i].x - 2, player->cards[i].y - 2,
+                             2 * IMG_WIDTH + 4, IMG_HEIGHT + 4, ORANGE); // draw the outline
+                }
+            }
         }
-        break;
     }
 }
-
 
 void _generateNumbers(Player *player)
 {
@@ -191,20 +176,20 @@ void _generateNumbers(Player *player)
         switch (j)
         {
         case 0:
-            player->cards[j].destX = offset + 110;
-            player->cards[j].destY = 150;
+            player->cards[j].destX = offset + PLAYER1_CARD0_X;
+            player->cards[j].destY = PLAYER1_CARD0_Y;
             break;
         case 2:
-            player->cards[j].destX = offset + 5;
-            player->cards[j].destY = 250;
+            player->cards[j].destX = offset + PLAYER1_CARD2_X;
+            player->cards[j].destY = PLAYER1_CARD2_Y;
             break;
         case 3:
-            player->cards[j].destX = offset + 215;
-            player->cards[j].destY = 250;
+            player->cards[j].destX = offset + PLAYER1_CARD3_X;
+            player->cards[j].destY = PLAYER1_CARD3_Y;
             break;
         case 1:
-            player->cards[j].destX = offset + 110;
-            player->cards[j].destY = 350;
+            player->cards[j].destX = offset + PLAYER1_CARD1_X;
+            player->cards[j].destY = PLAYER1_CARD1_Y;
             break;
         }
     }
@@ -237,10 +222,10 @@ void slideCards(Player *player)
             if (player->cards[i].x != player->cards[i].destX || player->cards[i].y != player->cards[i].destY)
             {
                 moveImage((const unsigned char *)player->cards[i].image, IMG_HEIGHT, IMG_WIDTH,
-                        player->cards[i].x,
-                        player->cards[i].y,
-                        player->cards[i].x + stepX,
-                        player->cards[i].y + stepY);
+                          player->cards[i].x,
+                          player->cards[i].y,
+                          player->cards[i].x + stepX,
+                          player->cards[i].y + stepY);
                 player->cards[i].x += stepX;
                 player->cards[i].y += stepY;
             }
@@ -311,30 +296,7 @@ void executeStep(Player *player)
 
         // Update the numbers on the screen for this player
         slideCards(player);
-        // Check if we have a solution
-        // int contains24 = 0;
-        // int allNumbersUsed = 1;
-        // for (int i = 0; i < 4; i++)
-        // {
-        //     if (player->nums[i] == 24)
-        //     {
-        //         contains24 = 1;
-        //         break;
-        //     }
-        //     else if (player->nums[i] != -1)
-        //     {
-        //         allNumbersUsed = 0;
-        //     }
-        // }
 
-        // if (contains24 && allNumbersUsed)
-        // {
-        //     transitionToState(player, GAME_OVER);
-        // }
-        // else if (allNumbersUsed)
-        // {
-        //     transitionToState(player, GAME_OVER);
-        // }
         break;
     case GAME_OVER:
         // Logic for game over
