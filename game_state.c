@@ -29,8 +29,10 @@ char operations[] = {'+', '-', '*', '/'};
 
 #define CARD_X_OFFSET 315
 
-Player player1 = {START_MENU, {-1, -1, -1, -1}, {0}, true, -1, -1, ' ', SELECT_NUM1};  // Player 1
-Player player2 = {START_MENU, {-1, -1, -1, -1}, {0}, false, -1, -1, ' ', SELECT_NUM1}; // Player 2
+Player player1 = {START_MENU, {-1, -1, -1, -1}, {0}, true, -1, -1, ' ', SELECT_NUM1, 1};  // Player 1
+Player player2 = {START_MENU, {-1, -1, -1, -1}, {0}, false, -1, -1, ' ', SELECT_NUM1, 2}; // Player 2
+
+sharedFlags gameFlags = {false, false, false, false}; // Shared flags for both players
 
 void sol_init()
 {
@@ -174,8 +176,7 @@ void handle_card_select(Player *player, bool enterPressed, int index)
 
 void _generateNumbers(Player *player)
 {
-    srand(time(NULL));
-
+    srand(time_us_32()); // Seed the random number generator with the current time
     for (int i = 0; i < 4; i++)
     {
         player->nums[i] = arrSol[rand() % 100][i];
@@ -236,10 +237,9 @@ void _generateNumbers(Player *player)
 
 void slideCards(Player *player)
 {
-
+    bool allCardsSlid = true;
     for (int i = 0; i < 4; i++)
     {
-
         if (player->cards[i].x != player->cards[i].destX || player->cards[i].y != player->cards[i].destY)
         {
             int dx = player->cards[i].destX - player->cards[i].x;
@@ -258,16 +258,40 @@ void slideCards(Player *player)
                 stepY = (dy > 0) ? 1 : -1; // Ensure at least 1 pixel movement
             }
 
-            if (player->cards[i].x != player->cards[i].destX || player->cards[i].y != player->cards[i].destY)
-            {
-                moveImage((const unsigned char *)player->cards[i].image, IMG_HEIGHT, IMG_WIDTH,
-                          player->cards[i].x,
-                          player->cards[i].y,
-                          player->cards[i].x + stepX,
-                          player->cards[i].y + stepY);
-                player->cards[i].x += stepX;
-                player->cards[i].y += stepY;
-            }
+            moveImage((const unsigned char *)backOfCard, IMG_HEIGHT, IMG_WIDTH,
+                      player->cards[i].x,
+                      player->cards[i].y,
+                      player->cards[i].x + stepX,
+                      player->cards[i].y + stepY);
+            player->cards[i].x += stepX;
+            player->cards[i].y += stepY;
+            allCardsSlid = false;
+        }
+    }
+    if (allCardsSlid)
+    {
+        if (player->playerNum == 1)
+        {
+            gameFlags.player1CardsSlid = true;
+        }
+        else
+        {
+            gameFlags.player2CardsSlid = true;
+        }
+    }
+}
+
+void flipCards(Player *player)
+{
+    for (int i = 0; i < 4; i++)
+    {
+        if (player->cards[i].flipProgress <= 1.0 + 0.01)
+        {
+            flipImage((const unsigned char *)backOfCard, IMG_HEIGHT, IMG_WIDTH,
+                      player->cards[i].x, player->cards[i].y,
+                      (const unsigned char *)player->cards[i].image, player->cards[i].flipProgress);
+
+            player->cards[i].flipProgress += 0.1; // Increment the flip progress
         }
     }
 }
@@ -280,7 +304,6 @@ void transitionToState(Player *player, GameState newState)
     case START_MENU:
         // Clear the screen
         fillRect(0, 0, 640, 480, BLACK);
-        pasteImage((const unsigned char *)backOfCard, IMG_HEIGHT, IMG_WIDTH, 20, 20);
         printf("In Start Menu State\n\r");
         player1.currentState = START_MENU;
         player2.currentState = START_MENU;
@@ -305,7 +328,6 @@ void transitionToState(Player *player, GameState newState)
     }
 }
 
-static float progress = 0.0;
 void executeStep(Player *player)
 {
     // Execute the current game state logic for the given player
@@ -313,14 +335,9 @@ void executeStep(Player *player)
     {
     case START_MENU:
         // tolerance for floating point comparison
-        if (progress <= 1. + 0.01)
-        {
-            flipImage((const unsigned char *)backOfCard, IMG_HEIGHT, IMG_WIDTH, 20, 20, (const unsigned char *)aceOfClub, progress);
-            progress += 0.05;
-        }
 
         // Blink the text
-        if ((time_us_32() / 1000000) % 2 == 0)
+        if ((time_us_32() / 500000) % 2 == 0)
         {
             fillRect(248, 200, 400, 50, BLACK);
         }
@@ -332,9 +349,11 @@ void executeStep(Player *player)
         }
         break;
     case GAME_PLAYING:
-
-        // Update the numbers on the screen for this player
-        slideCards(player);
+        slideCards(player); // Slide the cards
+        if (gameFlags.player1CardsSlid && gameFlags.player2CardsSlid)
+        {
+            flipCards(player);
+        }
 
         break;
     case GAME_OVER:

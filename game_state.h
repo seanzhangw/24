@@ -21,6 +21,7 @@ typedef enum
     USED,
     RESULT
 } CardState;
+
 typedef struct
 {
     int value;
@@ -38,7 +39,7 @@ typedef enum
     SELECT_NUM1,
     SELECT_OP,
     SELECT_NUM2
-} stage;
+} Stage;
 
 // all data related to player and their display
 typedef struct
@@ -50,8 +51,17 @@ typedef struct
     int num1;
     int num2;
     char op;
-    stage opStage; // Where each player is when performing operation
+    Stage opStage; // Where each player is when performing operation
+    int playerNum;
 } Player;
+
+typedef struct
+{
+    bool player1CardsSlid;
+    bool player2CardsSlid;
+    bool player1Win;
+    bool player2Win;
+} sharedFlags;
 
 extern char operations[];
 

@@ -855,7 +855,7 @@ void flipImage(const unsigned char *top_image, int image_height, int image_width
   float height;
   int x_offset = 0;
   // between 0 and 0.5, we are flipping to the right (left side is growing)
-  if (progress < 0.5)
+  if (progress <= 0.5 + 0.01)
   {
     left_base = map(progress, 0.0, 0.5, 1, 1.25);
     right_base = map(progress, 0.0, 0.5, 1, 0.75);
@@ -886,7 +886,9 @@ void flipImage(const unsigned char *top_image, int image_height, int image_width
     }
 
     // clear past artifacts
-    fillRect(x, y - triangle_base, x + x_offset, image_height + (triangle_base) * 2, BLACK);
+    // clean up left side of the backcard
+    fillRect(x - 4, y - triangle_base, x_offset + 4, image_height + (triangle_base) * 2, BLACK);
+    // clean up right side of the backcard
     fillRect(x + x_offset + trapezoid_height, y - triangle_base, image_width * 2 - trapezoid_height, image_height + (triangle_base) * 2, BLACK);
   }
   // between 0.5 and 1.0, we are flipping to the left (right side is growing)
@@ -899,14 +901,23 @@ void flipImage(const unsigned char *top_image, int image_height, int image_width
 
     // // draw the trapezoid in three parts
     int trapezoid_height = height * image_width * 2;
-    // int triangle_base = ((right_base * image_height) - image_height) / 2;
-    // int triangleStep = trapezoid_height / triangle_base;
-    // // 1. top triangle
+    int triangle_base = ((right_base * image_height) - image_height) / 2;
+    int triangleStep = trapezoid_height / triangle_base;
 
-    // // 2. middle rectangle
-    // fillRect(x + x_offset, y, trapezoid_height, image_height, WHITE);
+    // // 1. top triangle
+    // int accumulator = 0;
+    // for (int i = triangle_base; i > 0; i--)
+    // {
+    //   drawHLine(x + x_offset + accumulator, y - i, trapezoid_height - accumulator, WHITE);
+    //   accumulator += triangleStep;
+    // }
+    // 2. middle rectangle
     pasteImage(bottom_image, image_height, trapezoid_height / 2, x + x_offset, y);
 
     // 3. bottom triangle
+
+    // erase past artifacts
+
+    fillRect(x, y - (((1.25 * image_height) - image_height) / 2), image_width * 2, ((1.25 * image_height) - image_height) / 2 - triangle_base, BLACK);
   }
 }
