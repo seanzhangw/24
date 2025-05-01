@@ -1,22 +1,11 @@
 #include "assets.h"
 
+#include "drawer.h"
 #include "game_state.h"
 #include "array_sol.h"
 #include "input_handler.h"
 
 char operations[] = {'+', '-', '*', '/'};
-
-// typedef struct
-// {
-//     GameState currentState;
-//     int nums[4];         // Array to hold the numbers
-//     Card cards[4];       // Array to hold the cards
-//     bool onLeft;         // True if player is on left side of screen
-//     int num1;
-//     int num2;
-//     char op;
-//     stage opStage; // Where each player is when performing operation
-// } Player;
 
 #define PLAYER1_CARD0_X 110
 #define PLAYER1_CARD0_Y 150
@@ -39,7 +28,32 @@ void sol_init()
     array_solutions(100);
 }
 
-void reset_level(Player *player)
+void resetPlayer(Player *player)
+{
+    player->num1 = -1;
+    player->num2 = -1;
+    player->op = ' ';
+    player->opStage = SELECT_NUM1;
+    for (int i = 0; i < 4; i++)
+    {
+        player->nums[i] = -1;
+        player->cards[i].state = DEFAULT;
+        player->cards[i].flipProgress = 0.0; // reset flip progress
+    }
+}
+
+void prepNewRound()
+{
+    gameFlags.player1CardsSlid = false; // Reset the flags for the new round
+    gameFlags.player2CardsSlid = false;
+    gameFlags.player1Win = false;
+    gameFlags.player2Win = false;
+
+    resetPlayer(&player1); // Reset player 1
+    resetPlayer(&player2); // Reset player 2
+}
+
+void resetLevel(Player *player)
 {
     // restore default card states
     player->opStage = SELECT_NUM1;
@@ -174,12 +188,14 @@ void handle_card_select(Player *player, bool enterPressed, int index)
     }
 }
 
-void _generateNumbers(Player *player)
+void generateNumbers(Player *player)
 {
-    srand(time_us_32()); // Seed the random number generator with the current time
+    // srand(time_us_32());            // Seed the random number generator with the current time
+    // int randomIndex = rand() % 100; // Generate a random index between 0 and 99
     for (int i = 0; i < 4; i++)
     {
-        player->nums[i] = arrSol[rand() % 100][i];
+        // player->nums[i] = arrSol[randomIndex][i];
+        player->nums[i] = 6; // for ease of testing
     }
 
     for (int j = 0; j < 4; j++)
@@ -205,7 +221,7 @@ void _generateNumbers(Player *player)
         }
         // set initial position of the cards
         player->cards[j].x = 240;
-        player->cards[j].y = 0;
+        player->cards[j].y = 100;
 
         // set destination position of the cards
         int offset = 0;
@@ -240,6 +256,7 @@ void slideCards(Player *player)
     bool allCardsSlid = true;
     for (int i = 0; i < 4; i++)
     {
+        // Check if the card is not already at its destination
         if (player->cards[i].x != player->cards[i].destX || player->cards[i].y != player->cards[i].destY)
         {
             int dx = player->cards[i].destX - player->cards[i].x;
@@ -296,6 +313,19 @@ void flipCards(Player *player)
     }
 }
 
+void drawDeck()
+{
+    pasteImage((const unsigned char *)backOfCard, IMG_HEIGHT, IMG_WIDTH,
+               270, 10); // Draw the back of the card
+    drawHLine(270, 130, 100, WHITE);
+    drawHLine(270, 131, 100, DARK_BLUE);
+    drawHLine(270, 132, 100, WHITE);
+    drawHLine(270, 133, 100, DARK_BLUE);
+    drawHLine(270, 134, 100, WHITE);
+    drawHLine(270, 135, 100, DARK_BLUE);
+    drawHLine(270, 136, 100, WHITE);
+    drawHLine(270, 137, 100, DARK_BLUE);
+}
 void transitionToState(Player *player, GameState newState)
 {
 
@@ -304,15 +334,15 @@ void transitionToState(Player *player, GameState newState)
     case START_MENU:
         // Clear the screen
         fillRect(0, 0, 640, 480, BLACK);
-        printf("In Start Menu State\n\r");
+        prepNewRound();
         player1.currentState = START_MENU;
         player2.currentState = START_MENU;
         break;
     case GAME_PLAYING:
         printf("In Game Playing State\n\r");
         fillRect(0, 0, 640, 480, BLACK);
-        _generateNumbers(&player1);
-        _generateNumbers(&player2);
+        generateNumbers(&player1);
+        generateNumbers(&player2);
         player1.currentState = GAME_PLAYING;
         player2.currentState = GAME_PLAYING;
         break;
@@ -349,6 +379,8 @@ void executeStep(Player *player)
         }
         break;
     case GAME_PLAYING:
+        drawDeck();
+
         slideCards(player); // Slide the cards
         if (gameFlags.player1CardsSlid && gameFlags.player2CardsSlid)
         {

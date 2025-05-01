@@ -86,7 +86,6 @@ static PT_THREAD(protothread_serial(struct pt *pt))
         // ghetto debouncing
         while (gpio_get(BUTTON_PIN_P1_E) == 0)
           ;
-        printf("entered handle card select\n\r");
         handle_card_select(&player1, true, index);
       }
       else if (index != -1)
@@ -98,7 +97,7 @@ static PT_THREAD(protothread_serial(struct pt *pt))
         // ghetto debouncing
         while (gpio_get(BUTTON_PIN_P1_R) == 0)
           ;
-        reset_level(&player1);
+        resetLevel(&player1);
       }
       break;
     case GAME_OVER:

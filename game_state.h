@@ -1,3 +1,4 @@
+#pragma once
 #include "vga_driver/vga16_graphics.h"
 #include "hardware/clocks.h"
 #include "hardware/timer.h"
@@ -78,4 +79,4 @@ void sol_init();
 
 void handle_card_select(Player *player, bool enterPressed, int index);
 
-void reset_level(Player *player);
+void resetLevel(Player *player);

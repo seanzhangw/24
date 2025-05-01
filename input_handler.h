@@ -1,3 +1,4 @@
+#pragma once
 // Include standard libraries
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,7 +29,6 @@
 // ADC reading values
 #define DEADZONE 1000 // reduce noise
 #define CENTER 2048
-
 
 void initController();
 
