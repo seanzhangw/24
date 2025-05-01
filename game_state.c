@@ -1,6 +1,5 @@
 #include "assets.h"
 
-#include "drawer.h"
 #include "game_state.h"
 #include "array_sol.h"
 #include "input_handler.h"
@@ -190,12 +189,10 @@ void handle_card_select(Player *player, bool enterPressed, int index)
 
 void generateNumbers(Player *player)
 {
-    // srand(time_us_32());            // Seed the random number generator with the current time
-    // int randomIndex = rand() % 100; // Generate a random index between 0 and 99
+    srand(time_us_32()); // Seed the random number generator with the current time
     for (int i = 0; i < 4; i++)
     {
-        // player->nums[i] = arrSol[randomIndex][i];
-        player->nums[i] = 6; // for ease of testing
+        player->nums[i] = arrSol[rand() % 100][i];
     }
 
     for (int j = 0; j < 4; j++)
