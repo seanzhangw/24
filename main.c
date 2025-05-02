@@ -81,12 +81,21 @@ static PT_THREAD(protothread_serial(struct pt *pt))
       // User Selection
       int index = joystickSelect(joystick_x, joystick_y);
 
-      if (gpio_get(BUTTON_PIN_P1_E) == 0 && index != -1)
+      if (gpio_get(BUTTON_PIN_P1_E) == 0)
       {
         // ghetto debouncing
         while (gpio_get(BUTTON_PIN_P1_E) == 0)
           ;
-        handle_card_select(&player1, true, index);
+        if (index != -1)
+        {
+          // Handle card selection
+          handle_card_select(&player1, true, index);
+        }
+        else
+        {
+          // Handle card selection
+          handle_card_select(&player1, true, -1);
+        }
       }
       else if (index != -1)
       {
@@ -136,6 +145,84 @@ static PT_THREAD(protothread_anim(struct pt *pt))
   PT_END(pt);
 } // animation thread
 
+// ==================================================
+// === game controller thread
+// ==================================================
+static PT_THREAD(protothread_serial1(struct pt *pt))
+{
+  PT_BEGIN(pt);
+
+  while (1)
+  {
+    switch (player2.currentState)
+    {
+    case START_MENU:
+      // Read button inputs
+      if (gpio_get(BUTTON_PIN_P2_E) == 0 || gpio_get(BUTTON_PIN_P2_R) == 0)
+      {
+
+        // ghetto debouncing
+        while (gpio_get(BUTTON_PIN_P2_E) == 0 || gpio_get(BUTTON_PIN_P2_R) == 0)
+          ;
+
+        transitionToState(&player2, GAME_PLAYING);
+      }
+      // TODO: Add joystick reads here in the future
+      break;
+    case GAME_PLAYING:
+
+      adc_select_input();
+      int joystick_x = adc_read();
+      adc_select_input();
+      int joystick_y = adc_read();
+
+      // User Selection
+      int index = joystickSelect(joystick_x, joystick_y);
+
+      if (gpio_get(BUTTON_PIN_P2_E) == 0)
+      {
+        // ghetto debouncing
+        while (gpio_get(BUTTON_PIN_P2_E) == 0)
+          ;
+        if (index != -1)
+        {
+          // Handle card selection
+          handle_card_select(&player2, true, index);
+        }
+        else
+        {
+          // Handle card selection
+          handle_card_select(&player2, true, -1);
+        }
+      }
+      else if (index != -1)
+      {
+        handle_card_select(&player2, false, index);
+      }
+      else if (gpio_get(BUTTON_PIN_P2_R) == 0)
+      {
+        // ghetto debouncing
+        while (gpio_get(BUTTON_PIN_P2_R) == 0)
+          ;
+        resetLevel(&player2);
+      }
+      break;
+    case GAME_OVER:
+      // Read button inputs
+      if (gpio_get(BUTTON_PIN_P2_E) == 0 || gpio_get(BUTTON_PIN_P2_R) == 0)
+      {
+        // ghetto debouncing
+        while (gpio_get(BUTTON_PIN_P2_E) == 0 || gpio_get(BUTTON_PIN_P2_R) == 0)
+          ;
+
+        transitionToState(&player2, START_MENU);
+      }
+      break;
+    }
+    PT_YIELD(pt);
+  } // END WHILE(1)
+  PT_END(pt);
+}
 // Animation on core 1
 static PT_THREAD(protothread_anim1(struct pt *pt))
 {
@@ -170,6 +257,8 @@ void core1_main()
 {
   // Add animation thread
   pt_add_thread(protothread_anim1);
+  // pt_add_thread(protothread_serial1);
+
   // Start the scheduler
   pt_schedule_start;
 }

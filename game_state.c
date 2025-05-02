@@ -22,6 +22,7 @@ Player player2 = {START_MENU, {-1, -1, -1, -1}, {0}, false, -1, -1, ' ', SELECT_
 
 sharedFlags gameFlags = {false, false, false, false}; // Shared flags for both players
 
+volatile bool stateTransition = false;
 void sol_init()
 {
     array_solutions(100);
@@ -68,6 +69,13 @@ void resetLevel(Player *player)
         pasteImage(player->cards[i].image, IMG_HEIGHT, IMG_WIDTH,
                    player->cards[i].x, player->cards[i].y);
     }
+
+    // erase outlines
+    for (int i = 0; i < 4; i++)
+    {
+        drawRect(player->cards[i].x - 2, player->cards[i].y - 2,
+                 2 * IMG_WIDTH + 4, IMG_HEIGHT + 4, BLACK); // draw a card outline
+    }
 }
 
 void handle_card_select(Player *player, bool enterPressed, int index)
@@ -79,8 +87,23 @@ void handle_card_select(Player *player, bool enterPressed, int index)
         switch (player->opStage)
         {
         case SELECT_NUM1:
-            if (player->cards[index].state == SELECTED || player->cards[index].state == USED)
-                return;
+            if (index == -1)
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    if (player->cards[i].state == HOVERED)
+                    {
+                        index = i; // find the selected card
+                        break;
+                    }
+                }
+                if (index == -1)
+                    return;
+            }
+            else if (player->cards[index].state == SELECTED || player->cards[index].state == USED)
+            {
+                return; // if the card is already selected, do nothing
+            }
             player->num1 = player->nums[index]; // remove the number from the array
             player->nums[index] = -1;
             player->cards[index].state = SELECTED; // mark the card as selected
@@ -89,13 +112,28 @@ void handle_card_select(Player *player, bool enterPressed, int index)
                      2 * IMG_WIDTH + 4, IMG_HEIGHT + 4, BLUE); // draw a card outline
             break;
         case SELECT_OP:
+            if (index == -1)
+            {
+                return;
+            }
             player->op = operations[index]; // remove the number from the array
             player->opStage = SELECT_NUM2;  // move to the next stage
             drawCharBig(PLAYER1_CARD0_X + IMG_WIDTH, PLAYER1_CARD2_Y + IMG_HEIGHT / 2, operations[index], WHITE, BLACK);
             break;
         case SELECT_NUM2:
-            if (player->cards[index].state == SELECTED || player->cards[index].state == USED)
-                return;
+            if (index == -1)
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    if (player->cards[i].state == HOVERED)
+                    {
+                        index = i; // find the selected card
+                        break;
+                    }
+                }
+                if (index == -1)
+                    return;
+            }
             player->num2 = player->nums[index]; // remove the number from the array
             player->nums[index] = -1;           // remove the number from the array
 
@@ -146,6 +184,7 @@ void handle_card_select(Player *player, bool enterPressed, int index)
             char buffer[2];
             sprintf(buffer, "%d", player->nums[index]); // convert the number to a string
             setCursor(player->cards[index].x + IMG_WIDTH, player->cards[index].y + IMG_HEIGHT / 2);
+            setTextColor2(WHITE, BLACK);   // set the text color
             writeStringBig(buffer);        // write the result
             player->opStage = SELECT_NUM1; // move to the first stage
 
@@ -176,11 +215,13 @@ void handle_card_select(Player *player, bool enterPressed, int index)
                 {
                     drawRect(player->cards[i].x - 2, player->cards[i].y - 2,
                              2 * IMG_WIDTH + 4, IMG_HEIGHT + 4, BLACK); // erase the outline
+                    player->cards[i].state = DEFAULT;                   // mark the card as default
                 }
                 else
                 {
                     drawRect(player->cards[i].x - 2, player->cards[i].y - 2,
                              2 * IMG_WIDTH + 4, IMG_HEIGHT + 4, ORANGE); // draw the outline
+                    player->cards[i].state = HOVERED;                    // mark the card as hovered
                 }
             }
         }
@@ -325,7 +366,7 @@ void drawDeck()
 }
 void transitionToState(Player *player, GameState newState)
 {
-
+    stateTransition = true; // Set the state transition flag
     switch (newState)
     {
     case START_MENU:
@@ -353,10 +394,14 @@ void transitionToState(Player *player, GameState newState)
         player2.currentState = GAME_OVER;
         break;
     }
+    // Reset the state transition flag
+    stateTransition = false;
 }
 
 void executeStep(Player *player)
 {
+    while (stateTransition)
+        ;
     // Execute the current game state logic for the given player
     switch (player->currentState)
     {
@@ -370,9 +415,9 @@ void executeStep(Player *player)
         //     fillRect(248, 200, 400, 50, BLACK);
         // }
 
-        setCursor(340, 200);
-        setTextColor2(WHITE, BLACK);
-        writeStringBig("1 Player");
+        // setCursor(340, 200);
+        // setTextColor2(WHITE, BLACK);
+        // writeStringBig("1 Player");
         break;
     case GAME_PLAYING:
         drawDeck();
@@ -382,7 +427,6 @@ void executeStep(Player *player)
         {
             flipCards(player);
         }
-
         break;
     case GAME_OVER:
         // Logic for game over

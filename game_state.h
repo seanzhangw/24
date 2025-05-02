@@ -41,6 +41,7 @@ typedef enum
 typedef enum
 {
     DEFAULT,
+    HOVERED,
     SELECTED,
     USED,
     RESULT
@@ -86,6 +87,7 @@ extern Player player2; // Player 2
 
 extern char operations[];
 
+extern volatile bool stateTransition;
 void transitionToState(Player *player, GameState newState);
 
 void executeStep(Player *player);
