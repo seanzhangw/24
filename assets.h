@@ -3,8 +3,11 @@
 #define IMG_WIDTH 50
 #define IMG_HEIGHT 121
 
-// extern unsigned char background[639][479];
+#define LOGO_WIDTH 153
+#define LOGO_HEIGHT 308
 
+// extern unsigned char background[639][479];
+extern const unsigned char logo[LOGO_HEIGHT][LOGO_WIDTH];
 // External arrays of cards
 extern const unsigned char *spades[10];
 extern const unsigned char *hearts[10];

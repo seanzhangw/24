@@ -361,19 +361,18 @@ void executeStep(Player *player)
     switch (player->currentState)
     {
     case START_MENU:
-        // tolerance for floating point comparison
+        pasteImage((const unsigned char *)logo, LOGO_HEIGHT, LOGO_WIDTH,
+                   30, 80); // Draw the logo
 
-        // Blink the text
-        if ((time_us_32() / 500000) % 2 == 0)
-        {
-            fillRect(248, 200, 400, 50, BLACK);
-        }
-        else
-        {
-            setCursor(248, 200);
-            setTextColor2(WHITE, BLACK);
-            writeStringBig("Press any key to start");
-        }
+        // // Blink the text NOTE: base x position on the selection
+        // if ((time_us_32() / 500000) % 2 == 0)
+        // {
+        //     fillRect(248, 200, 400, 50, BLACK);
+        // }
+
+        setCursor(340, 200);
+        setTextColor2(WHITE, BLACK);
+        writeStringBig("1 Player");
         break;
     case GAME_PLAYING:
         drawDeck();

@@ -7,6 +7,28 @@
 #include <string.h>
 #include <time.h>
 
+/* ------------------------ BEGIN: Game State --------------------------------*/
+typedef enum
+{
+    EASY,
+    MEDIUM,
+    HARD
+} Difficulty;
+
+typedef struct
+{
+    Difficulty difficultyLevel; // Easy, Medium, Hard
+    // GameMode gameMode;
+} Settings;
+
+typedef struct
+{
+    bool player1CardsSlid;
+    bool player2CardsSlid;
+    bool player1Win;
+    bool player2Win;
+} sharedFlags;
+
 // Define the game states
 typedef enum
 {
@@ -14,7 +36,8 @@ typedef enum
     GAME_PLAYING,
     GAME_OVER
 } GameState;
-
+/* ------------------------ END: Game State --------------------------------*/
+/* ----------------------------- BEGIN: Card State ---------------------------*/
 typedef enum
 {
     DEFAULT,
@@ -41,8 +64,9 @@ typedef enum
     SELECT_OP,
     SELECT_NUM2
 } Stage;
+/* ----------------------------- END: Card State -----------------------------*/
 
-// all data related to player and their display
+/* ------------------------ BEGIN: Player State ------------------------------*/
 typedef struct
 {
     GameState currentState;
@@ -56,18 +80,11 @@ typedef struct
     int playerNum;
 } Player;
 
-typedef struct
-{
-    bool player1CardsSlid;
-    bool player2CardsSlid;
-    bool player1Win;
-    bool player2Win;
-} sharedFlags;
-
-extern char operations[];
-
 extern Player player1; // Player 1
 extern Player player2; // Player 2
+/* ------------------------ END: Player State --------------------------------*/
+
+extern char operations[];
 
 void transitionToState(Player *player, GameState newState);
 
