@@ -174,7 +174,7 @@ int (*array_solutions(int size))[5]
         return NULL;
 
     int count = 0;
-    srand(time(NULL));
+    srand(time_us_32()); // Seed the random number generator with the current time
 
     while (count < size)
     {

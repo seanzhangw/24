@@ -43,7 +43,7 @@
 
 // Include game headers
 #include "game_state.h"
-#include "array_sol.h"
+#include "array_collection_difficultylevel.h"
 #include "input_handler.h"
 
 #define FRAME_RATE 33000

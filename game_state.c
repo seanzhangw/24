@@ -1,7 +1,7 @@
 #include "assets.h"
 
 #include "game_state.h"
-#include "array_sol.h"
+#include "array_collection_difficultylevel.h"
 #include "input_handler.h"
 
 char operations[] = {'+', '-', '*', '/'};

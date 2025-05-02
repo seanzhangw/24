@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include "hardware/timer.h"
 
 // Maximum number of solutions
 #define MAX_SIZE 100
