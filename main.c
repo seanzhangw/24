@@ -54,7 +54,6 @@
 static PT_THREAD(protothread_serial(struct pt *pt))
 {
   PT_BEGIN(pt);
-
   while (1)
   {
     switch (player1.currentState)
@@ -64,19 +63,24 @@ static PT_THREAD(protothread_serial(struct pt *pt))
       if (gpio_get(BUTTON_PIN_P1_E) == 0 || gpio_get(BUTTON_PIN_P1_R) == 0)
       {
         // ghetto debouncing
-        while (gpio_get(BUTTON_PIN_P1_E) == 0 || gpio_get(BUTTON_PIN_P1_R) == 0)
-          ;
+        while (gpio_get(BUTTON_PIN_P1_E) == 0 || gpio_get(BUTTON_PIN_P1_R) == 0);
 
         transitionToState(&player1, GAME_PLAYING);
       }
       // TODO: Add joystick reads here in the future
       break;
     case GAME_PLAYING:
+      //printf("AIN0 scaled value: %d\n", ads1115_read_ain0_scaled());
 
       adc_select_input(ADC_CHAN0);
       int joystick_x = adc_read();
+      printf("channel 0: %d\n", joystick_x);
+
       adc_select_input(ADC_CHAN1);
       int joystick_y = adc_read();
+      printf("channel 1: %d\n", joystick_y);
+
+      // int joystick_y = ads1115_read_single_channel(6);
 
       // User Selection
       int index = joystickSelect(joystick_x, joystick_y);
@@ -169,15 +173,17 @@ static PT_THREAD(protothread_serial1(struct pt *pt))
       }
       // TODO: Add joystick reads here in the future
       break;
-    case GAME_PLAYING:
+    case GAME_PLAYING:      
+      adc_select_input(ADC_CHAN2);
+      int joystick_x = ads1115_read_single_channel(5);
+      int joystick_y = ads1115_read_single_channel(4);
 
-      adc_select_input();
-      int joystick_x = adc_read();
-      adc_select_input();
-      int joystick_y = adc_read();
+      printf("a0: %d\n", joystick_x);
+      printf("a1: %d\n", joystick_x);
 
       // User Selection
-      int index = joystickSelect(joystick_x, joystick_y);
+      int index = joystickSelect_ads(joystick_x, joystick_y);
+      // printf("index: %d\n", index);
 
       if (gpio_get(BUTTON_PIN_P2_E) == 0)
       {
@@ -257,7 +263,7 @@ void core1_main()
 {
   // Add animation thread
   pt_add_thread(protothread_anim1);
-  // pt_add_thread(protothread_serial1);
+  pt_add_thread(protothread_serial1);
 
   // Start the scheduler
   pt_schedule_start;
