@@ -82,7 +82,15 @@ static PT_THREAD(protothread_serial(struct pt *pt))
       // User Selection
       int index = joystickSelect(joystick_x, joystick_y);
 
-      if (gpio_get(BUTTON_PIN_P1_E) == 0)
+      if (gpio_get(BUTTON_PIN_P1_S) == 0)
+      {
+        // ghetto debouncing
+        while (gpio_get(BUTTON_PIN_P1_S) == 0)
+          ;
+        printf("skip level");
+        skipLevel(&player1);
+      }
+      else if (gpio_get(BUTTON_PIN_P1_E) == 0)
       {
         // ghetto debouncing
         while (gpio_get(BUTTON_PIN_P1_E) == 0)
@@ -168,7 +176,6 @@ static PT_THREAD(protothread_serial1(struct pt *pt))
 
         transitionToState(&player2, GAME_PLAYING);
       }
-      // TODO: Add joystick reads here in the future
       break;
     case GAME_PLAYING:
 
@@ -179,7 +186,14 @@ static PT_THREAD(protothread_serial1(struct pt *pt))
       int index = joystickSelect_ads(joystick_x, joystick_y);
       printf("index: %d\n", index);
 
-      if (gpio_get(BUTTON_PIN_P2_E) == 0)
+      if (gpio_get(BUTTON_PIN_P2_S) == 0)
+      {
+        // ghetto debouncing
+        while (gpio_get(BUTTON_PIN_P2_S) == 0)
+          ;
+        skipLevel(&player2);
+      }
+      else if (gpio_get(BUTTON_PIN_P2_E) == 0)
       {
         // ghetto debouncing
         while (gpio_get(BUTTON_PIN_P2_E) == 0)

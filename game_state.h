@@ -49,7 +49,7 @@ typedef enum
 
 typedef struct
 {
-    int value;
+    float value;
     const unsigned char *image;
     int x;
     int y;
@@ -84,12 +84,12 @@ typedef enum
 typedef struct
 {
     GameState currentState;
-    int nums[4];   // Array to hold the numbers
+    float nums[4]; // Array to hold the numbers
     Card cards[4]; // Array to hold the cards
     Operator operator;
     bool onLeft; // True if player is on left side of screen
-    int num1;
-    int num2;
+    float num1;
+    float num2;
     Stage opStage; // Where each player is when performing operation
     int playerNum;
 } Player;
@@ -112,3 +112,5 @@ void sol_init();
 void handle_card_select(Player *player, bool enterPressed, int index);
 
 void resetLevel(Player *player);
+
+void skipLevel(Player *player);

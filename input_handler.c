@@ -19,11 +19,15 @@ void initController()
     gpio_init(BUTTON_PIN_P2_R);
     gpio_init(BUTTON_PIN_P1_E);
     gpio_init(BUTTON_PIN_P2_E);
+    gpio_init(BUTTON_PIN_P1_S);
+    gpio_init(BUTTON_PIN_P2_S);
 
     gpio_set_dir(BUTTON_PIN_P1_R, GPIO_IN);
     gpio_set_dir(BUTTON_PIN_P2_R, GPIO_IN);
     gpio_set_dir(BUTTON_PIN_P1_E, GPIO_IN);
     gpio_set_dir(BUTTON_PIN_P2_E, GPIO_IN);
+    gpio_set_dir(BUTTON_PIN_P1_S, GPIO_IN);
+    gpio_set_dir(BUTTON_PIN_P2_S, GPIO_IN);
 }
 
 int joystickSelect(int joystick_x, int joystick_y)
@@ -47,7 +51,6 @@ int joystickSelect(int joystick_x, int joystick_y)
     }
     return -1; // No valid movement (still centered)
 }
-
 
 int joystickSelect_ads(int joystick_x, int joystick_y)
 {
@@ -77,49 +80,21 @@ int16_t ads1115_read_single_channel(uint8_t mux_bits) {
     config[1] = 0x80 | (mux_bits << 4) | 0x02;  // OS=1 (start), MUX, PGA=±2.048V, MODE=single-shot
     config[2] = 0xE3;  // DR=860SPS, comparator off
 
-    if (i2c_write_blocking(I2C_PORT, ADS1115_ADDR, config, 3, false) < 0) {
-        printf("Config write failed\n");
-        return 0;
-    }
-
+    i2c_write_blocking(I2C_PORT, ADS1115_ADDR, config, 3, false);
     sleep_ms(2);  // Wait for conversion to complete
 
     uint8_t reg = 0x00;
-    i2c_write_blocking(I2C_PORT, ADS1115_ADDR, &reg, 1, true);
+    i2c_write_blocking(I2C_PORT, ADS1115_ADDR, &reg, 1, false);
+    uint8_t dummy[2];
+    i2c_read_blocking(I2C_PORT, ADS1115_ADDR, dummy, 2, false);
+
+    i2c_write_blocking(I2C_PORT, ADS1115_ADDR, config, 3, false);
+    sleep_ms(2);
+
+    i2c_write_blocking(I2C_PORT, ADS1115_ADDR, &reg, 1, false);
     uint8_t buf[2];
     i2c_read_blocking(I2C_PORT, ADS1115_ADDR, buf, 2, false);
 
     int16_t raw = (buf[0] << 8) | buf[1];
     return (raw * 4096) / 32768;  // Scale to –4096..+4096
-}
-
-
-int16_t ads1115_read_ain0_scaled() {
-    uint8_t config[3];
-    config[0] = ADS1115_REG_CONFIG;
-    config[1] = 0b11000010;
-    config[2] = 0b11100101;
-
-    if (i2c_write_blocking(I2C_PORT, ADS1115_ADDR, config, 3, false) < 0) {
-        printf("Config write failed\n");
-        return 0;
-    }
-
-    sleep_ms(2);
-
-    uint8_t reg = ADS1115_REG_CONVERSION;
-    if (i2c_write_blocking(I2C_PORT, ADS1115_ADDR, &reg, 1, true) < 0) {
-        printf("Failed to set pointer to conversion reg\n");
-        return 0;
-    }
-
-    uint8_t buf[2];
-    if (i2c_read_blocking(I2C_PORT, ADS1115_ADDR, buf, 2, false) < 0) {
-        printf("Read failed\n");
-        return 0;
-    }
-
-    int16_t raw = (buf[0] << 8) | buf[1];  // MSB first
-    int16_t scaled = (raw * 4096) / 32768; // Scale to –4096..+4096
-    return scaled;
 }

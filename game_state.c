@@ -79,11 +79,11 @@ void resetLevel(Player *player)
                  2 * IMG_WIDTH + 4, IMG_HEIGHT + 4, BLACK); // draw a card outline
     }
     int offset = -5;
-    // erase operator
+    // erase previous operator underlines
     drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + 20, 10, BLACK);
-    drawHLine(player->cards[0].x + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 10, 10, BLACK);
+    drawHLine(player->cards[0].x + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BLACK);
     drawHLine(player->cards[0].x + IMG_WIDTH + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BLACK);
-    drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 2 + 15, 10, BLACK);
+    drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 2 + 10, 10, BLACK);
 }
 
 void handle_card_select(Player *player, bool enterPressed, int index)
@@ -178,17 +178,21 @@ void handle_card_select(Player *player, bool enterPressed, int index)
             {
             case '+':
                 player->nums[index] = player->num1 + player->num2; // add the two numbers
+                printf("%f\n", player->nums[index]);
                 break;
             case '-':
                 player->nums[index] = player->num1 - player->num2; // subtract the two numbers
+                printf("%f\n", player->nums[index]);
                 break;
             case '*':
                 player->nums[index] = player->num1 * player->num2; // multiply the two numbers
+                printf("%f\n", player->nums[index]);
                 break;
             case '/':
                 if (player->num2 != 0)
                 {
                     player->nums[index] = player->num1 / player->num2; // divide the two numbers
+                    printf("%f\n", player->nums[index]);
                 }
                 else
                 {
@@ -213,9 +217,9 @@ void handle_card_select(Player *player, bool enterPressed, int index)
             // erase the operator
             fillRect(PLAYER1_CARD0_X + IMG_WIDTH, PLAYER1_CARD2_Y + IMG_HEIGHT / 2, 10, 10, BLACK);
 
-            char buffer[2];
-            sprintf(buffer, "%d", player->nums[index]); // convert the number to a string
-            setCursor(player->cards[index].x + IMG_WIDTH, player->cards[index].y + IMG_HEIGHT / 2);
+            char buffer[16];
+            sprintf(buffer, "%.2f", player->nums[index]); // convert the number to a string
+            setCursor(player->cards[index].x + IMG_WIDTH - 20, player->cards[index].y + IMG_HEIGHT / 2);
             setTextColor2(WHITE, BLACK);   // set the text color
             writeStringBig(buffer);        // write the result
             player->opStage = SELECT_NUM1; // move to the first stage
@@ -299,21 +303,22 @@ void generateNumbers(Player *player)
     {
         // assign the integer value for calculations
         player->cards[j].value = player->nums[j];
+        int index = (int)(player->nums[j]);
 
         // Assign a random suit based on the card value
         switch (rand() % 4)
         {
         case 0:
-            player->cards[j].image = spades[player->nums[j] - 1];
+            player->cards[j].image = spades[index - 1];
             break;
         case 1:
-            player->cards[j].image = hearts[player->nums[j] - 1];
+            player->cards[j].image = hearts[index - 1];
             break;
         case 2:
-            player->cards[j].image = diamonds[player->nums[j] - 1];
+            player->cards[j].image = diamonds[index - 1];
             break;
         case 3:
-            player->cards[j].image = clubs[player->nums[j] - 1];
+            player->cards[j].image = clubs[index - 1];
             break;
         }
         // set initial position of the cards
@@ -346,6 +351,69 @@ void generateNumbers(Player *player)
             break;
         }
     }
+}
+
+void skipLevel(Player *player)
+{
+    // restore default card states
+    player->opStage = SELECT_NUM1;
+    player->num1 = -1;
+    player->num2 = -1;
+    player->operator.op = ' ';
+    player->operator.state = OP_DEFAULT;
+
+    srand(time_us_32()); // Seed the random number generator with the current time
+    for (int i = 0; i < 4; i++)
+    {
+        player->nums[i] = arrSol[rand() % 100][i];
+    }
+
+    for (int j = 0; j < 4; j++)
+    {
+        // assign the integer value for calculations
+        player->cards[j].value = player->nums[j];
+        int index = (int)(player->nums[j]);
+
+        // Assign a random suit based on the card value
+        switch (rand() % 4)
+        {
+        case 0:
+            player->cards[j].image = spades[index - 1];
+            break;
+        case 1:
+            player->cards[j].image = hearts[index - 1];
+            break;
+        case 2:
+            player->cards[j].image = diamonds[index - 1];
+            break;
+        case 3:
+            player->cards[j].image = clubs[index - 1];
+            break;
+        }
+    }
+
+    for (int i = 0; i < 4; i++)
+    {
+        player->nums[i] = player->cards[i].value; // restore the numbers
+        player->cards[i].state = DEFAULT;
+
+        // draw cards
+        pasteImage(player->cards[i].image, IMG_HEIGHT, IMG_WIDTH,
+                   player->cards[i].x, player->cards[i].y);
+    }
+
+    // erase outlines
+    for (int i = 0; i < 4; i++)
+    {
+        drawRect(player->cards[i].x - 2, player->cards[i].y - 2,
+                 2 * IMG_WIDTH + 4, IMG_HEIGHT + 4, BLACK); // draw a card outline
+    }
+    int offset = -5;
+    // erase previous operator underlines
+    drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + 20, 10, BLACK);
+    drawHLine(player->cards[0].x + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BLACK);
+    drawHLine(player->cards[0].x + IMG_WIDTH + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BLACK);
+    drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 2 + 10, 10, BLACK);
 }
 
 void slideCards(Player *player)
