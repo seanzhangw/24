@@ -61,6 +61,19 @@ typedef struct
 
 typedef enum
 {
+    OP_DEFAULT,
+    OP_HOVERED,
+    OP_SELECTED,
+} operatorState;
+
+typedef struct
+{
+    operatorState state;
+    char op;
+} Operator;
+
+typedef enum
+{
     SELECT_NUM1,
     SELECT_OP,
     SELECT_NUM2
@@ -73,10 +86,10 @@ typedef struct
     GameState currentState;
     int nums[4];   // Array to hold the numbers
     Card cards[4]; // Array to hold the cards
-    bool onLeft;   // True if player is on left side of screen
+    Operator operator;
+    bool onLeft; // True if player is on left side of screen
     int num1;
     int num2;
-    char op;
     Stage opStage; // Where each player is when performing operation
     int playerNum;
 } Player;

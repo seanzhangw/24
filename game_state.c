@@ -4,7 +4,7 @@
 #include "array_collection_difficultylevel.h"
 #include "input_handler.h"
 
-char operations[] = {'+', '-', '*', '/'};
+char operations[4] = {'+', '-', '/', '*'}; // Array of operators
 
 #define PLAYER1_CARD0_X 110
 #define PLAYER1_CARD0_Y 150
@@ -17,8 +17,8 @@ char operations[] = {'+', '-', '*', '/'};
 
 #define CARD_X_OFFSET 315
 
-Player player1 = {START_MENU, {-1, -1, -1, -1}, {0}, true, -1, -1, ' ', SELECT_NUM1, 1};  // Player 1
-Player player2 = {START_MENU, {-1, -1, -1, -1}, {0}, false, -1, -1, ' ', SELECT_NUM1, 2}; // Player 2
+Player player1 = {START_MENU, {-1, -1, -1, -1}, {0}, {OP_DEFAULT, ' '}, true, -1, -1, SELECT_NUM1, 1};  // Player 1
+Player player2 = {START_MENU, {-1, -1, -1, -1}, {0}, {OP_DEFAULT, ' '}, false, -1, -1, SELECT_NUM1, 2}; // Player 2
 
 sharedFlags gameFlags = {false, false, false, false}; // Shared flags for both players
 
@@ -32,7 +32,8 @@ void resetPlayer(Player *player)
 {
     player->num1 = -1;
     player->num2 = -1;
-    player->op = ' ';
+    player->operator.op = ' ';
+    player->operator.state = OP_DEFAULT;
     player->opStage = SELECT_NUM1;
     for (int i = 0; i < 4; i++)
     {
@@ -59,7 +60,8 @@ void resetLevel(Player *player)
     player->opStage = SELECT_NUM1;
     player->num1 = -1;
     player->num2 = -1;
-    player->op = ' ';
+    player->operator.op = ' ';
+    player->operator.state = OP_DEFAULT;
 
     for (int i = 0; i < 4; i++)
     {
@@ -76,6 +78,12 @@ void resetLevel(Player *player)
         drawRect(player->cards[i].x - 2, player->cards[i].y - 2,
                  2 * IMG_WIDTH + 4, IMG_HEIGHT + 4, BLACK); // draw a card outline
     }
+    int offset = -5;
+    // erase operator
+    drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + 20, 10, BLACK);
+    drawHLine(player->cards[0].x + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 10, 10, BLACK);
+    drawHLine(player->cards[0].x + IMG_WIDTH + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BLACK);
+    drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 2 + 15, 10, BLACK);
 }
 
 void handle_card_select(Player *player, bool enterPressed, int index)
@@ -116,9 +124,29 @@ void handle_card_select(Player *player, bool enterPressed, int index)
             {
                 return;
             }
-            player->op = operations[index]; // remove the number from the array
-            player->opStage = SELECT_NUM2;  // move to the next stage
-            drawCharBig(PLAYER1_CARD0_X + IMG_WIDTH, PLAYER1_CARD2_Y + IMG_HEIGHT / 2, operations[index], WHITE, BLACK);
+            player->operator.op = operations[index];
+            player->operator.state = OP_SELECTED; // mark the operator as selected
+            player->opStage = SELECT_NUM2;        // move to the next stage
+
+            int offset = -5;
+
+            switch (index)
+            {
+            case 0:
+                drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + 20, 10, BLUE);
+                break;
+            case 1:
+                drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 2 + 10, 10, BLUE);
+                break;
+            case 2:
+                drawHLine(player->cards[0].x + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BLUE);
+                break;
+            case 3:
+                drawHLine(player->cards[0].x + IMG_WIDTH + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BLUE);
+                break;
+            default:
+                break;
+            }
             break;
         case SELECT_NUM2:
             if (index == -1)
@@ -134,6 +162,10 @@ void handle_card_select(Player *player, bool enterPressed, int index)
                 if (index == -1)
                     return;
             }
+            else if (player->cards[index].state == SELECTED || player->cards[index].state == USED)
+            {
+                return; // if the card is already selected, do nothing
+            }
             player->num2 = player->nums[index]; // remove the number from the array
             player->nums[index] = -1;           // remove the number from the array
 
@@ -142,7 +174,7 @@ void handle_card_select(Player *player, bool enterPressed, int index)
             // 2) erasing the selected cards and drawing the result
             // 3) checking if 24 has been made
             // perform the operation
-            switch (player->op)
+            switch (player->operator.op)
             {
             case '+':
                 player->nums[index] = player->num1 + player->num2; // add the two numbers
@@ -224,6 +256,33 @@ void handle_card_select(Player *player, bool enterPressed, int index)
                     player->cards[i].state = HOVERED;                    // mark the card as hovered
                 }
             }
+        }
+    }
+    else if (player->opStage == SELECT_OP)
+    {
+        int offset = -5;
+        // erase previous operator underlines
+        drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + 20, 10, BLACK);
+        drawHLine(player->cards[0].x + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BLACK);
+        drawHLine(player->cards[0].x + IMG_WIDTH + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BLACK);
+        drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 2 + 10, 10, BLACK);
+
+        switch (index)
+        {
+        case 0:
+            drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + 20, 10, ORANGE);
+            break;
+        case 1:
+            drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 2 + 10, 10, ORANGE);
+            break;
+        case 2:
+            drawHLine(player->cards[0].x + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, ORANGE);
+            break;
+        case 3:
+            drawHLine(player->cards[0].x + IMG_WIDTH + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, ORANGE);
+            break;
+        default:
+            break;
         }
     }
 }
@@ -364,6 +423,56 @@ void drawDeck()
     drawHLine(270, 136, 100, WHITE);
     drawHLine(270, 137, 100, DARK_BLUE);
 }
+
+void drawStartMenu()
+{
+    // draw the logo
+    pasteImage((const unsigned char *)logo, LOGO_HEIGHT, LOGO_WIDTH,
+               30, 80);
+
+    setTextColorBig(WHITE, BLACK);
+
+    // difficulty select
+    setCursor(470, 100);
+    writeStringBold("Difficulty: ");
+
+    setCursor(406, 130);
+    writeStringBold("Easy");
+
+    setCursor(480, 130);
+    writeStringBold("Medium");
+
+    setCursor(550, 130);
+    writeStringBold("Hard");
+
+    // time limit select
+    setCursor(470, 200);
+    writeStringBold("Time: ");
+
+    setCursor(406, 230);
+    writeStringBold("1 min");
+
+    setCursor(480, 230);
+    writeStringBold("2 min");
+
+    setCursor(550, 230);
+    writeStringBold("3 min");
+
+    // leaderboard display
+    setCursor(470, 300);
+    writeStringBold("Leaderboard: ");
+}
+
+void drawOperators(Player *player)
+{
+    int offset = -5;
+    // Draw the operators
+    drawCharBig(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT - offset, '+', WHITE, BLACK);
+    drawCharBig(player->cards[0].x + IMG_WIDTH - IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4, '/', WHITE, BLACK);
+    drawCharBig(player->cards[0].x + IMG_WIDTH + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4, '*', WHITE, BLACK);
+    drawCharBig(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 2 + offset, '-', WHITE, BLACK);
+}
+
 void transitionToState(Player *player, GameState newState)
 {
     stateTransition = true; // Set the state transition flag
@@ -426,6 +535,7 @@ void executeStep(Player *player)
         if (gameFlags.player1CardsSlid && gameFlags.player2CardsSlid)
         {
             flipCards(player);
+            drawOperators(player);
         }
         break;
     case GAME_OVER:

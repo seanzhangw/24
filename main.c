@@ -63,22 +63,19 @@ static PT_THREAD(protothread_serial(struct pt *pt))
       if (gpio_get(BUTTON_PIN_P1_E) == 0 || gpio_get(BUTTON_PIN_P1_R) == 0)
       {
         // ghetto debouncing
-        while (gpio_get(BUTTON_PIN_P1_E) == 0 || gpio_get(BUTTON_PIN_P1_R) == 0);
+        while (gpio_get(BUTTON_PIN_P1_E) == 0 || gpio_get(BUTTON_PIN_P1_R) == 0)
+          ;
 
         transitionToState(&player1, GAME_PLAYING);
       }
       // TODO: Add joystick reads here in the future
       break;
     case GAME_PLAYING:
-      //printf("AIN0 scaled value: %d\n", ads1115_read_ain0_scaled());
-
       adc_select_input(ADC_CHAN0);
       int joystick_x = adc_read();
-      printf("channel 0: %d\n", joystick_x);
 
       adc_select_input(ADC_CHAN1);
       int joystick_y = adc_read();
-      printf("channel 1: %d\n", joystick_y);
 
       // int joystick_y = ads1115_read_single_channel(6);
 
@@ -173,17 +170,14 @@ static PT_THREAD(protothread_serial1(struct pt *pt))
       }
       // TODO: Add joystick reads here in the future
       break;
-    case GAME_PLAYING:      
-      adc_select_input(ADC_CHAN2);
-      int joystick_x = ads1115_read_single_channel(5);
-      int joystick_y = ads1115_read_single_channel(4);
+    case GAME_PLAYING:
 
-      printf("a0: %d\n", joystick_x);
-      printf("a1: %d\n", joystick_x);
+      int joystick_x = ads1115_read_single_channel(7);
+      int joystick_y = ads1115_read_single_channel(4);
 
       // User Selection
       int index = joystickSelect_ads(joystick_x, joystick_y);
-      // printf("index: %d\n", index);
+      printf("index: %d\n", index);
 
       if (gpio_get(BUTTON_PIN_P2_E) == 0)
       {
