@@ -37,6 +37,8 @@
 #define BUTTON_PIN_P2_R 3
 #define BUTTON_PIN_P1_E 4
 #define BUTTON_PIN_P2_E 5
+#define BUTTON_PIN_P1_S 8
+#define BUTTON_PIN_P2_S 9
 
 // ADC reading values
 #define DEADZONE 1000 // reduce noise
@@ -49,7 +51,5 @@ void initController();
 int joystickSelect(int, int);
 
 int joystickSelect_ads(int, int);
-
-int16_t ads1115_read_ain0_scaled();
 
 int16_t ads1115_read_single_channel(uint8_t);
