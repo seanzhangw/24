@@ -294,9 +294,11 @@ void handle_card_select(Player *player, bool enterPressed, int index)
 void generateNumbers(Player *player)
 {
     srand(time_us_32()); // Seed the random number generator with the current time
+    int rand_index = rand() % 100;
+    printf("selected index: %d", rand_index);
     for (int i = 0; i < 4; i++)
     {
-        player->nums[i] = arrSol[rand() % 100][i];
+        player->nums[i] = arrSol[rand_index][i];
     }
 
     for (int j = 0; j < 4; j++)
@@ -363,9 +365,10 @@ void skipLevel(Player *player)
     player->operator.state = OP_DEFAULT;
 
     srand(time_us_32()); // Seed the random number generator with the current time
+    int rand_index = rand() % 100;
     for (int i = 0; i < 4; i++)
     {
-        player->nums[i] = arrSol[rand() % 100][i];
+        player->nums[i] = arrSol[rand_index][i];
     }
 
     for (int j = 0; j < 4; j++)

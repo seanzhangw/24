@@ -87,7 +87,7 @@ static PT_THREAD(protothread_serial(struct pt *pt))
         // ghetto debouncing
         while (gpio_get(BUTTON_PIN_P1_S) == 0)
           ;
-        printf("skip level");
+        // printf("skip level");
         skipLevel(&player1);
       }
       else if (gpio_get(BUTTON_PIN_P1_E) == 0)
@@ -184,7 +184,7 @@ static PT_THREAD(protothread_serial1(struct pt *pt))
 
       // User Selection
       int index = joystickSelect_ads(joystick_x, joystick_y);
-      printf("index: %d\n", index);
+      // f("index: %d\n", index);
 
       if (gpio_get(BUTTON_PIN_P2_S) == 0)
       {
@@ -294,6 +294,12 @@ int main()
 
   // initialize controllers
   initController();
+  for (int i = 0; i < MAX_SIZE; i++) 
+  {
+    printf("index: %d", i);
+    printf("[%d, %d, %d, %d]\n", arrSol[i][0], arrSol[i][1], arrSol[i][2], arrSol[i][3]);
+  }
+
 
   // start core 1
   multicore_reset_core1();
