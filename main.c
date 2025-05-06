@@ -48,7 +48,7 @@
 #include "eeprom.h"
 
 #define FRAME_RATE 33000
-#define JOYSTICK_COOLDOWN_US 150000 // 500ms cooldown for joystick input
+#define JOYSTICK_COOLDOWN_US 125000 // 500ms cooldown for joystick input
 // ==================================================
 // === game controller thread
 // ==================================================
@@ -79,7 +79,7 @@ static PT_THREAD(protothread_serial(struct pt *pt))
         // ghetto debouncing
         while (gpio_get(BUTTON_PIN_P1_E) == 0)
           ;
-        handle_start_menu_input(true, -1);
+        handle_start_menu_input(true, -NEUTRAL);
       }
       // TODO: Add joystick reads here in the future
       break;
@@ -106,7 +106,7 @@ static PT_THREAD(protothread_serial(struct pt *pt))
         // ghetto debouncing
         while (gpio_get(BUTTON_PIN_P1_E) == 0)
           ;
-        if (index != -1)
+        if (index != NEUTRAL)
         {
           // Handle card selection
           handle_card_select(&player1, true, index);
@@ -114,10 +114,10 @@ static PT_THREAD(protothread_serial(struct pt *pt))
         else
         {
           // Handle card selection
-          handle_card_select(&player1, true, -1);
+          handle_card_select(&player1, true, NEUTRAL);
         }
       }
-      else if (index != -1)
+      else if (index != NEUTRAL)
       {
         handle_card_select(&player1, false, index);
       }
@@ -194,7 +194,7 @@ static PT_THREAD(protothread_serial1(struct pt *pt))
         // ghetto debouncing
         while (gpio_get(BUTTON_PIN_P2_E) == 0)
           ;
-        handle_start_menu_input(true, -1);
+        handle_start_menu_input(true, NEUTRAL);
       }
       // TODO: Add joystick reads here in the future
       break;
@@ -218,7 +218,7 @@ static PT_THREAD(protothread_serial1(struct pt *pt))
         // ghetto debouncing
         while (gpio_get(BUTTON_PIN_P2_E) == 0)
           ;
-        if (index != -1)
+        if (index != NEUTRAL)
         {
           // Handle card selection
           handle_card_select(&player2, true, index);
@@ -226,10 +226,10 @@ static PT_THREAD(protothread_serial1(struct pt *pt))
         else
         {
           // Handle card selection
-          handle_card_select(&player2, true, -1);
+          handle_card_select(&player2, true, NEUTRAL);
         }
       }
-      else if (index != -1)
+      else if (index != NEUTRAL)
       {
         handle_card_select(&player2, false, index);
       }
@@ -324,7 +324,9 @@ int main()
   pt_add_thread(protothread_serial);
   pt_add_thread(protothread_anim);
 
-  menuLock = spin_lock_instance(SPINLOCK_ID);
+  menuLock = spin_lock_instance(MENU_LOCK_ID);
+  paramLock = spin_lock_instance(PARAM_LOCK_ID);
+
   transitionToState(&player1, START_MENU);
   // start scheduler
   pt_schedule_start;

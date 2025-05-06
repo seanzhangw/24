@@ -8,6 +8,7 @@ char operations[4] = {'+', '-', '/', '*'}; // Array of operators
 StartMenuState startMenuState = {0, 0, {EASY, 0}}; // Global variable for the start menu state
 
 spin_lock_t *menuLock; // Spinlock for the start menu
+spin_lock_t *paramLock;
 
 #define PLAYER1_CARD0_X 110
 #define PLAYER1_CARD0_Y 150
@@ -22,12 +23,14 @@ spin_lock_t *menuLock; // Spinlock for the start menu
 
 #define BACKGROUND DARK_GREEN
 
-Player player1 = {START_MENU, {-1, -1, -1, -1}, {0}, {OP_DEFAULT, ' '}, true, -1, -1, SELECT_NUM1, 1};  // Player 1
-Player player2 = {START_MENU, {-1, -1, -1, -1}, {0}, {OP_DEFAULT, ' '}, false, -1, -1, SELECT_NUM1, 2}; // Player 2
+Player player1 = {START_MENU, {-1, -1, -1, -1}, {0}, {OP_DEFAULT, ' '}, 0, -1, -1, SELECT_NUM1, 1}; // Player 1
+Player player2 = {START_MENU, {-1, -1, -1, -1}, {0}, {OP_DEFAULT, ' '}, 0, -1, -1, SELECT_NUM1, 2}; // Player 2
 
-sharedFlags gameFlags = {false, false, false, false}; // Shared flags for both players
+GameFlags gameFlags = {false, false, false, false, 0}; // Shared flags for both players
 
 volatile bool stateTransition = false;
+
+repeating_timer_t timer;
 
 MenuIcon startMenuIcons[ROWS][COLS] = {
     {{406, 130, WHITE, 4, "EASY"}, {470, 130, WHITE, 6, "MEDIUM"}, {550, 130, WHITE, 4, "HARD"}},
@@ -67,6 +70,7 @@ void prepNewRound()
 
 void resetLevel(Player *player)
 {
+    printf("reached reset level\n");
     // restore default card states
     player->opStage = SELECT_NUM1;
     player->num1 = -1;
@@ -106,7 +110,7 @@ void handle_card_select(Player *player, bool enterPressed, int index)
         switch (player->opStage)
         {
         case SELECT_NUM1:
-            if (index == -1)
+            if (index == NEUTRAL)
             {
                 for (int i = 0; i < 4; i++)
                 {
@@ -116,7 +120,7 @@ void handle_card_select(Player *player, bool enterPressed, int index)
                         break;
                     }
                 }
-                if (index == -1)
+                if (index == NEUTRAL)
                     return;
             }
             else if (player->cards[index].state == SELECTED || player->cards[index].state == USED)
@@ -131,7 +135,7 @@ void handle_card_select(Player *player, bool enterPressed, int index)
                      2 * IMG_WIDTH + 4, IMG_HEIGHT + 4, BLUE); // draw a card outline
             break;
         case SELECT_OP:
-            if (index == -1)
+            if (index == NEUTRAL)
             {
                 return;
             }
@@ -160,7 +164,7 @@ void handle_card_select(Player *player, bool enterPressed, int index)
             }
             break;
         case SELECT_NUM2:
-            if (index == -1)
+            if (index == NEUTRAL)
             {
                 for (int i = 0; i < 4; i++)
                 {
@@ -170,7 +174,7 @@ void handle_card_select(Player *player, bool enterPressed, int index)
                         break;
                     }
                 }
-                if (index == -1)
+                if (index == NEUTRAL)
                     return;
             }
             else if (player->cards[index].state == SELECTED || player->cards[index].state == USED)
@@ -317,7 +321,8 @@ void handle_start_menu_input(bool enterPressed, int index)
         }
         else
         {
-            MenuIcon icon = startMenuIcons[startMenuState.curRow][startMenuState.settings.mins];
+            // subtract 1 here b/c we incremented 1 for an easier conversion from mins to seconds
+            MenuIcon icon = startMenuIcons[startMenuState.curRow][startMenuState.settings.mins - 1];
             drawHLine(icon.x,
                       icon.y + 16, icon.len * 8, BACKGROUND); // erase the underline
         }
@@ -333,7 +338,7 @@ void handle_start_menu_input(bool enterPressed, int index)
         }
         else if (startMenuState.curRow == 1)
         {
-            startMenuState.settings.mins = startMenuState.curCol; // set the time limit
+            startMenuState.settings.mins = startMenuState.curCol + 1; // set the time limit
         }
         else
         {
@@ -343,7 +348,7 @@ void handle_start_menu_input(bool enterPressed, int index)
     else
     {
         // update curRow and curCol based on joystick input
-        if (index == -1)
+        if (index == NEUTRAL)
         {
             return; // no selection made
         }
@@ -366,6 +371,7 @@ void handle_start_menu_input(bool enterPressed, int index)
         }
     }
 }
+
 void generateNumbers(Player *player, int difficulty)
 {
     int chosenIndex = 0;
@@ -410,11 +416,8 @@ void generateNumbers(Player *player, int difficulty)
         player->cards[j].y = 100;
 
         // set destination position of the cards
-        int offset = 0;
-        if (!player->onLeft)
-        {
-            offset = 315;
-        }
+        int offset = (player->playerNum == 2) ? CARD_X_OFFSET : 0;
+
         switch (j)
         {
         case 0:
@@ -680,16 +683,43 @@ void drawOperators(Player *player)
 
 void drawRoundParams()
 {
-    setTextColor2(WHITE, BACKGROUND);
+    setTextColor2(RED, BACKGROUND);
     setCursor(5, 5);
-    writeStringBig("Player 1: ");
+    writeStringBig("P1 Score: ");
     setCursor(5, 25);
-    writeStringBig("Player 2: ");
+    writeStringBig("P2 Score: ");
     setCursor(5, 45);
     writeStringBig("Time Left: ");
     setCursor(5, 65);
     writeStringBig("Difficulty: ");
 }
+
+void updateParams(Player *player)
+{
+    char buffer[16];
+    if (player->playerNum == 1)
+        setCursor(100, 5);
+    else
+        setCursor(100, 25);
+
+    sprintf(buffer, "%d", player->score); // convert the score to a string
+    setTextColor2(WHITE, BACKGROUND);     // set the text color
+    writeStringBig(buffer);               // write the score
+
+    setCursor(100, 45);
+    sprintf(buffer, "%d", gameFlags.secondsLeft); // convert the time to a string
+    writeStringBig(buffer);                       // write the time
+}
+
+bool timer_callback(repeating_timer_t *rt)
+{
+    if (gameFlags.secondsLeft > 0)
+        gameFlags.secondsLeft--;
+    else
+        return false; // Stop timer when timeLeft reaches 0
+    return true;
+}
+
 void transitionToState(Player *player, GameState newState)
 {
     stateTransition = true; // Set the state transition flag
@@ -706,11 +736,19 @@ void transitionToState(Player *player, GameState newState)
     case GAME_PLAYING:
         printf("In Game Playing State\n\r");
         fillRect(0, 0, 640, 480, BACKGROUND);
+        drawRoundParams();
+        // import start menu settings
         generateNumbers(&player1, startMenuState.settings.difficultyLevel);
         generateNumbers(&player2, startMenuState.settings.difficultyLevel);
-        drawRoundParams();
+        gameFlags.secondsLeft = startMenuState.settings.mins * 60; // Set the time limit
+        printf("Time Left: %d\n\r", gameFlags.secondsLeft);
         player1.currentState = GAME_PLAYING;
         player2.currentState = GAME_PLAYING;
+
+        // timer interrupt for countdown
+        if (player1.playerNum == 1)
+            add_repeating_timer_us(-1000000, timer_callback, NULL, &timer);
+
         break;
     case GAME_OVER:
         // Clear the screen and display "Game Over!"
@@ -741,6 +779,7 @@ void executeStep(Player *player)
         spin_unlock(menuLock, irq_status);
         break;
     case GAME_PLAYING:
+
         drawDeck();
 
         slideCards(player); // Slide the cards
@@ -748,6 +787,18 @@ void executeStep(Player *player)
         {
             flipCards(player);
             drawOperators(player);
+        }
+
+        // lock
+        uint32_t param_irq_status = spin_lock_blocking(paramLock);
+        updateParams(player);
+        // unlock
+        spin_unlock(paramLock, param_irq_status);
+
+        if (gameFlags.secondsLeft <= 0)
+        {
+            cancel_repeating_timer(&timer);
+            transitionToState(player, GAME_OVER); // Transition to game over state
         }
         break;
     case GAME_OVER:

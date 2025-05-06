@@ -3,12 +3,13 @@
 #include "hardware/clocks.h"
 #include "hardware/sync.h"
 #include "hardware/timer.h"
+#include "input_handler.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
-/* ------------------------ BEGIN: Game State --------------------------------*/
+/* ------------------------ BEGIN: Start Menu --------------------------------*/
 #define ROWS 2
 #define COLS 3
 
@@ -38,18 +39,23 @@ typedef struct
     int mins;
 } Settings;
 
-#define SPINLOCK_ID 0
-
 typedef struct
 {
     int curRow;
     int curCol;
     Settings settings;
+    JoystickDir lastMenuDir;
 } StartMenuState;
 
+#define MENU_LOCK_ID 0
+#define PARAM_LOCK_ID 1
+
 extern spin_lock_t *menuLock;
+extern spin_lock_t *paramLock; // Spinlock for the start menu
 
 extern StartMenuState startMenuState; // Global variable for the start menu state
+/* ------------------------- END: Start Menu ---------------------------------*/
+/* ------------------------ BEGIN: Game State --------------------------------*/
 
 typedef struct
 {
@@ -57,7 +63,8 @@ typedef struct
     bool player2CardsSlid;
     bool player1Win;
     bool player2Win;
-} sharedFlags;
+    volatile int secondsLeft;
+} GameFlags;
 
 // Define the game states
 typedef enum
@@ -117,7 +124,7 @@ typedef struct
     float nums[4]; // Array to hold the numbers
     Card cards[4]; // Array to hold the cards
     Operator operator;
-    bool onLeft; // True if player is on left side of screen
+    int score;
     float num1;
     float num2;
     Stage opStage; // Where each player is when performing operation
@@ -131,6 +138,7 @@ extern Player player2; // Player 2
 extern char operations[];
 
 extern volatile bool stateTransition;
+
 void transitionToState(Player *player, GameState newState);
 
 void executeStep(Player *player);

@@ -46,6 +46,15 @@
 #define CENTER 2048
 #define CENTERads 1500
 
+typedef enum
+{
+    UP,
+    DOWN,
+    LEFT,
+    RIGHT,
+    NEUTRAL,
+} JoystickDir;
+
 void initController();
 
 int joystickSelect(int, int);
