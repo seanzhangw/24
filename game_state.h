@@ -153,4 +153,4 @@ void handle_start_menu_input(bool enterPressed, int index);
 
 void resetLevel(Player *player);
 
-void skipLevel(Player *player);
+void skipLevel(Player *player, int difficulty);

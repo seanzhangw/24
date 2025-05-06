@@ -100,6 +100,146 @@ void resetLevel(Player *player)
     drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 2 + 10, 10, BACKGROUND);
 }
 
+void generateNumbers(Player *player, int difficulty)
+{
+    int chosenIndex = 0;
+    for (int i = 0; i < MAX_SIZE; i++)
+    {
+        if (arrSol[i][4] == difficulty)
+        {
+            chosenIndex = i;
+            arrSol[i][4] = -1; // mark the solution as used
+            break;
+        }
+    }
+    for (int i = 0; i < 4; i++)
+    {
+        player->nums[i] = arrSol[chosenIndex][i];
+    }
+
+    for (int j = 0; j < 4; j++)
+    {
+        // assign the integer value for calculations
+        player->cards[j].value = player->nums[j];
+        int index = (int)(player->nums[j]);
+
+        // Assign a random suit based on the card value
+        switch (rand() % 4)
+        {
+        case 0:
+            player->cards[j].image = spades[index - 1];
+            break;
+        case 1:
+            player->cards[j].image = hearts[index - 1];
+            break;
+        case 2:
+            player->cards[j].image = diamonds[index - 1];
+            break;
+        case 3:
+            player->cards[j].image = clubs[index - 1];
+            break;
+        }
+        // set initial position of the cards
+        player->cards[j].x = 240;
+        player->cards[j].y = 100;
+
+        // set destination position of the cards
+        int offset = (player->playerNum == 2) ? CARD_X_OFFSET : 0;
+
+        switch (j)
+        {
+        case 0:
+            player->cards[j].destX = offset + PLAYER1_CARD0_X;
+            player->cards[j].destY = PLAYER1_CARD0_Y;
+            break;
+        case 2:
+            player->cards[j].destX = offset + PLAYER1_CARD2_X;
+            player->cards[j].destY = PLAYER1_CARD2_Y;
+            break;
+        case 3:
+            player->cards[j].destX = offset + PLAYER1_CARD3_X;
+            player->cards[j].destY = PLAYER1_CARD3_Y;
+            break;
+        case 1:
+            player->cards[j].destX = offset + PLAYER1_CARD1_X;
+            player->cards[j].destY = PLAYER1_CARD1_Y;
+            break;
+        }
+    }
+}
+
+void skipLevel(Player *player, int difficulty)
+{
+    // restore default card states
+    player->opStage = SELECT_NUM1;
+    player->num1 = -1;
+    player->num2 = -1;
+    player->operator.op = ' ';
+    player->operator.state = OP_DEFAULT;
+
+    int chosenIndex = 0;
+    for (int i = 0; i < MAX_SIZE; i++)
+    {
+        if (arrSol[i][4] == difficulty)
+        {
+            chosenIndex = i;
+            arrSol[i][4] = -1; // mark the solution as used
+            break;
+        }
+    }
+    for (int i = 0; i < 4; i++)
+    {
+        player->nums[i] = arrSol[chosenIndex][i];
+    }
+
+    for (int j = 0; j < 4; j++)
+    {
+        // assign the integer value for calculations
+        player->cards[j].value = player->nums[j];
+        int index = (int)(player->nums[j]);
+
+        // Assign a random suit based on the card value
+        switch (rand() % 4)
+        {
+        case 0:
+            player->cards[j].image = spades[index - 1];
+            break;
+        case 1:
+            player->cards[j].image = hearts[index - 1];
+            break;
+        case 2:
+            player->cards[j].image = diamonds[index - 1];
+            break;
+        case 3:
+            player->cards[j].image = clubs[index - 1];
+            break;
+        }
+    }
+
+    for (int i = 0; i < 4; i++)
+    {
+        player->nums[i] = player->cards[i].value; // restore the numbers
+        player->cards[i].state = DEFAULT;
+
+        // draw cards
+        pasteImage(player->cards[i].image, IMG_HEIGHT, IMG_WIDTH,
+                   player->cards[i].x, player->cards[i].y, BACKGROUND);
+    }
+
+    // erase outlines
+    for (int i = 0; i < 4; i++)
+    {
+        drawRect(player->cards[i].x - 2, player->cards[i].y - 2,
+                 2 * IMG_WIDTH + 4, IMG_HEIGHT + 4, BACKGROUND); // draw a card outline
+    }
+    int offset = -5;
+    // erase previous operator underlines
+    drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + 20, 10, BACKGROUND);
+    drawHLine(player->cards[0].x + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BACKGROUND);
+    drawHLine(player->cards[0].x + IMG_WIDTH + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BACKGROUND);
+    drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 2 + 10, 10, BACKGROUND);
+}
+
 void handle_card_select(Player *player, bool enterPressed, int index)
 {
     // if enter is pressed, that means a number is selected
@@ -228,6 +368,7 @@ void handle_card_select(Player *player, bool enterPressed, int index)
                         player->cards[i].state = RESULT;
                 }
             }
+            offset = -5;
             // erase previous operator underlines
             drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + 20, 10, BACKGROUND);
             drawHLine(player->cards[0].x + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BACKGROUND);
@@ -252,8 +393,8 @@ void handle_card_select(Player *player, bool enterPressed, int index)
                         return;
                     }
                 }
-                // if we have no remaining cards, we have a winner
-                transitionToState(player, GAME_OVER); // transition to game over state
+                player->score += startMenuState.settings.difficultyLevel + 1; // add the score based on the difficulty level
+                skipLevel(player, startMenuState.settings.difficultyLevel);   // generate new numbers
             }
         }
     }
@@ -369,138 +510,6 @@ void handle_start_menu_input(bool enterPressed, int index)
             }
         }
     }
-}
-
-void generateNumbers(Player *player, int difficulty)
-{
-    int chosenIndex = 0;
-    for (int i = 0; i < MAX_SIZE; i++)
-    {
-        if (arrSol[i][4] == difficulty)
-        {
-            chosenIndex = i;
-            arrSol[i][4] = -1; // mark the solution as used
-            break;
-        }
-    }
-    for (int i = 0; i < 4; i++)
-    {
-        player->nums[i] = arrSol[chosenIndex][i];
-    }
-
-    for (int j = 0; j < 4; j++)
-    {
-        // assign the integer value for calculations
-        player->cards[j].value = player->nums[j];
-        int index = (int)(player->nums[j]);
-
-        // Assign a random suit based on the card value
-        switch (rand() % 4)
-        {
-        case 0:
-            player->cards[j].image = spades[index - 1];
-            break;
-        case 1:
-            player->cards[j].image = hearts[index - 1];
-            break;
-        case 2:
-            player->cards[j].image = diamonds[index - 1];
-            break;
-        case 3:
-            player->cards[j].image = clubs[index - 1];
-            break;
-        }
-        // set initial position of the cards
-        player->cards[j].x = 240;
-        player->cards[j].y = 100;
-
-        // set destination position of the cards
-        int offset = (player->playerNum == 2) ? CARD_X_OFFSET : 0;
-
-        switch (j)
-        {
-        case 0:
-            player->cards[j].destX = offset + PLAYER1_CARD0_X;
-            player->cards[j].destY = PLAYER1_CARD0_Y;
-            break;
-        case 2:
-            player->cards[j].destX = offset + PLAYER1_CARD2_X;
-            player->cards[j].destY = PLAYER1_CARD2_Y;
-            break;
-        case 3:
-            player->cards[j].destX = offset + PLAYER1_CARD3_X;
-            player->cards[j].destY = PLAYER1_CARD3_Y;
-            break;
-        case 1:
-            player->cards[j].destX = offset + PLAYER1_CARD1_X;
-            player->cards[j].destY = PLAYER1_CARD1_Y;
-            break;
-        }
-    }
-}
-
-void skipLevel(Player *player)
-{
-    // restore default card states
-    player->opStage = SELECT_NUM1;
-    player->num1 = -1;
-    player->num2 = -1;
-    player->operator.op = ' ';
-    player->operator.state = OP_DEFAULT;
-
-    srand(time_us_32()); // Seed the random number generator with the current time
-    int rand_index = rand() % 100;
-    for (int i = 0; i < 4; i++)
-    {
-        player->nums[i] = arrSol[rand_index][i];
-    }
-
-    for (int j = 0; j < 4; j++)
-    {
-        // assign the integer value for calculations
-        player->cards[j].value = player->nums[j];
-        int index = (int)(player->nums[j]);
-
-        // Assign a random suit based on the card value
-        switch (rand() % 4)
-        {
-        case 0:
-            player->cards[j].image = spades[index - 1];
-            break;
-        case 1:
-            player->cards[j].image = hearts[index - 1];
-            break;
-        case 2:
-            player->cards[j].image = diamonds[index - 1];
-            break;
-        case 3:
-            player->cards[j].image = clubs[index - 1];
-            break;
-        }
-    }
-
-    for (int i = 0; i < 4; i++)
-    {
-        player->nums[i] = player->cards[i].value; // restore the numbers
-        player->cards[i].state = DEFAULT;
-
-        // draw cards
-        pasteImage(player->cards[i].image, IMG_HEIGHT, IMG_WIDTH,
-                   player->cards[i].x, player->cards[i].y, BACKGROUND);
-    }
-
-    // erase outlines
-    for (int i = 0; i < 4; i++)
-    {
-        drawRect(player->cards[i].x - 2, player->cards[i].y - 2,
-                 2 * IMG_WIDTH + 4, IMG_HEIGHT + 4, BACKGROUND); // draw a card outline
-    }
-    int offset = -5;
-    // erase previous operator underlines
-    drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + 20, 10, BACKGROUND);
-    drawHLine(player->cards[0].x + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BACKGROUND);
-    drawHLine(player->cards[0].x + IMG_WIDTH + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BACKGROUND);
-    drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 2 + 10, 10, BACKGROUND);
 }
 
 void slideCards(Player *player)
@@ -701,8 +710,8 @@ void updateParams(Player *player)
     writeStringBig(buffer);               // write the score
 
     setCursor(100, 45);
-    sprintf(buffer, "%d", gameFlags.secondsLeft); // convert the time to a string
-    writeStringBig(buffer);                       // write the time
+    sprintf(buffer, "%d ", gameFlags.secondsLeft); // convert the time to a string
+    writeStringBig(buffer);                        // write the time
 }
 
 bool timer_callback(repeating_timer_t *rt)
@@ -746,11 +755,10 @@ void transitionToState(Player *player, GameState newState)
     case GAME_OVER:
         // Clear the screen and display "Game Over!"
         fillRect(0, 0, 640, 480, BACKGROUND);
-        setCursor(248, 200);
-        setTextColor2(WHITE, BACKGROUND);
-        writeStringBig("Game Over!");
+
         player1.currentState = GAME_OVER;
         player2.currentState = GAME_OVER;
+
         break;
     }
     // Reset the state transition flag

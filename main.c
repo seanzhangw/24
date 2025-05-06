@@ -100,7 +100,7 @@ static PT_THREAD(protothread_serial(struct pt *pt))
         while (gpio_get(BUTTON_PIN_P1_S) == 0)
           ;
         // printf("skip level");
-        skipLevel(&player1);
+        skipLevel(&player1, startMenuState.settings.difficultyLevel);
       }
       else if (gpio_get(BUTTON_PIN_P1_E) == 0)
       {
@@ -213,7 +213,7 @@ static PT_THREAD(protothread_serial1(struct pt *pt))
         // ghetto debouncing
         while (gpio_get(BUTTON_PIN_P2_S) == 0)
           ;
-        skipLevel(&player2);
+        skipLevel(&player2, startMenuState.settings.difficultyLevel);
       }
       else if (gpio_get(BUTTON_PIN_P2_E) == 0)
       {
