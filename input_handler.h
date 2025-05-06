@@ -22,7 +22,7 @@
 #define SCL_PIN 7
 #define ADS1115_ADDR 0x48
 #define ADS1115_REG_CONVERSION 0x00
-#define ADS1115_REG_CONFIG     0x01
+#define ADS1115_REG_CONFIG 0x01
 
 #define ADC_CHAN0 0
 #define ADC_PIN0 26
@@ -35,8 +35,8 @@
 
 #define BUTTON_PIN_P1_R 2
 #define BUTTON_PIN_P2_R 3
-#define BUTTON_PIN_P1_E 4
-#define BUTTON_PIN_P2_E 5
+#define BUTTON_PIN_P1_E 10
+#define BUTTON_PIN_P2_E 11
 #define BUTTON_PIN_P1_S 8
 #define BUTTON_PIN_P2_S 9
 

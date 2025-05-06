@@ -1,10 +1,13 @@
 #include "assets.h"
-
 #include "game_state.h"
 #include "array_collection_difficultylevel.h"
 #include "input_handler.h"
 
 char operations[4] = {'+', '-', '/', '*'}; // Array of operators
+
+StartMenuState startMenuState = {0, 0, {EASY, 0}}; // Global variable for the start menu state
+
+spin_lock_t *menuLock; // Spinlock for the start menu
 
 #define PLAYER1_CARD0_X 110
 #define PLAYER1_CARD0_Y 150
@@ -17,12 +20,20 @@ char operations[4] = {'+', '-', '/', '*'}; // Array of operators
 
 #define CARD_X_OFFSET 315
 
+#define BACKGROUND DARK_GREEN
+
 Player player1 = {START_MENU, {-1, -1, -1, -1}, {0}, {OP_DEFAULT, ' '}, true, -1, -1, SELECT_NUM1, 1};  // Player 1
 Player player2 = {START_MENU, {-1, -1, -1, -1}, {0}, {OP_DEFAULT, ' '}, false, -1, -1, SELECT_NUM1, 2}; // Player 2
 
 sharedFlags gameFlags = {false, false, false, false}; // Shared flags for both players
 
 volatile bool stateTransition = false;
+
+MenuIcon startMenuIcons[ROWS][COLS] = {
+    {{406, 130, WHITE, 4, "EASY"}, {470, 130, WHITE, 6, "MEDIUM"}, {550, 130, WHITE, 4, "HARD"}},
+    {{406, 230, WHITE, 5, "1 Min"}, {480, 230, WHITE, 5, "2 Min"}, {550, 230, WHITE, 5, "3 Min"}},
+};
+
 void sol_init()
 {
     array_solutions(100);
@@ -69,21 +80,21 @@ void resetLevel(Player *player)
         player->cards[i].state = DEFAULT;
         // draw cards
         pasteImage(player->cards[i].image, IMG_HEIGHT, IMG_WIDTH,
-                   player->cards[i].x, player->cards[i].y);
+                   player->cards[i].x, player->cards[i].y, BACKGROUND);
     }
 
     // erase outlines
     for (int i = 0; i < 4; i++)
     {
         drawRect(player->cards[i].x - 2, player->cards[i].y - 2,
-                 2 * IMG_WIDTH + 4, IMG_HEIGHT + 4, BLACK); // draw a card outline
+                 2 * IMG_WIDTH + 4, IMG_HEIGHT + 4, BACKGROUND); // draw a card outline
     }
     int offset = -5;
     // erase previous operator underlines
-    drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + 20, 10, BLACK);
-    drawHLine(player->cards[0].x + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BLACK);
-    drawHLine(player->cards[0].x + IMG_WIDTH + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BLACK);
-    drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 2 + 10, 10, BLACK);
+    drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + 20, 10, BACKGROUND);
+    drawHLine(player->cards[0].x + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BACKGROUND);
+    drawHLine(player->cards[0].x + IMG_WIDTH + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BACKGROUND);
+    drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 2 + 10, 10, BACKGROUND);
 }
 
 void handle_card_select(Player *player, bool enterPressed, int index)
@@ -207,22 +218,25 @@ void handle_card_select(Player *player, bool enterPressed, int index)
                 if (i == index || player->cards[i].state == SELECTED)
                 {
                     fillRect(player->cards[i].x - 2, player->cards[i].y - 2,
-                             2 * IMG_WIDTH + 4, IMG_HEIGHT + 4, BLACK); // erase the card
+                             2 * IMG_WIDTH + 4, IMG_HEIGHT + 4, BACKGROUND); // erase the card
                     if (player->cards[i].state == SELECTED)
                         player->cards[i].state = USED;
                     else
                         player->cards[i].state = RESULT;
                 }
             }
-            // erase the operator
-            fillRect(PLAYER1_CARD0_X + IMG_WIDTH, PLAYER1_CARD2_Y + IMG_HEIGHT / 2, 10, 10, BLACK);
+            // erase previous operator underlines
+            drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + 20, 10, BACKGROUND);
+            drawHLine(player->cards[0].x + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BACKGROUND);
+            drawHLine(player->cards[0].x + IMG_WIDTH + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BACKGROUND);
+            drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 2 + 10, 10, BACKGROUND);
 
             char buffer[16];
             sprintf(buffer, "%.2f", player->nums[index]); // convert the number to a string
             setCursor(player->cards[index].x + IMG_WIDTH - 20, player->cards[index].y + IMG_HEIGHT / 2);
-            setTextColor2(WHITE, BLACK);   // set the text color
-            writeStringBig(buffer);        // write the result
-            player->opStage = SELECT_NUM1; // move to the first stage
+            setTextColor2(WHITE, BACKGROUND); // set the text color
+            writeStringBig(buffer);           // write the result
+            player->opStage = SELECT_NUM1;    // move to the first stage
 
             // check if the result is 24
             if (player->nums[index] == 24)
@@ -250,8 +264,8 @@ void handle_card_select(Player *player, bool enterPressed, int index)
                 if (i != index)
                 {
                     drawRect(player->cards[i].x - 2, player->cards[i].y - 2,
-                             2 * IMG_WIDTH + 4, IMG_HEIGHT + 4, BLACK); // erase the outline
-                    player->cards[i].state = DEFAULT;                   // mark the card as default
+                             2 * IMG_WIDTH + 4, IMG_HEIGHT + 4, BACKGROUND); // erase the outline
+                    player->cards[i].state = DEFAULT;                        // mark the card as default
                 }
                 else
                 {
@@ -266,10 +280,10 @@ void handle_card_select(Player *player, bool enterPressed, int index)
     {
         int offset = -5;
         // erase previous operator underlines
-        drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + 20, 10, BLACK);
-        drawHLine(player->cards[0].x + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BLACK);
-        drawHLine(player->cards[0].x + IMG_WIDTH + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BLACK);
-        drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 2 + 10, 10, BLACK);
+        drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + 20, 10, BACKGROUND);
+        drawHLine(player->cards[0].x + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BACKGROUND);
+        drawHLine(player->cards[0].x + IMG_WIDTH + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BACKGROUND);
+        drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 2 + 10, 10, BACKGROUND);
 
         switch (index)
         {
@@ -291,14 +305,82 @@ void handle_card_select(Player *player, bool enterPressed, int index)
     }
 }
 
-void generateNumbers(Player *player)
+void handle_start_menu_input(bool enterPressed, int index)
 {
-    srand(time_us_32()); // Seed the random number generator with the current time
-    int rand_index = rand() % 100;
-    printf("selected index: %d", rand_index);
+    if (enterPressed)
+    {
+        if (startMenuState.curRow == 0)
+        {
+            MenuIcon icon = startMenuIcons[startMenuState.curRow][startMenuState.settings.difficultyLevel];
+            drawHLine(icon.x,
+                      icon.y + 16, icon.len * 8, BACKGROUND); // erase the underline
+        }
+        else
+        {
+            MenuIcon icon = startMenuIcons[startMenuState.curRow][startMenuState.settings.mins];
+            drawHLine(icon.x,
+                      icon.y + 16, icon.len * 8, BACKGROUND); // erase the underline
+        }
+
+        MenuIcon icon = startMenuIcons[startMenuState.curRow][startMenuState.curCol];
+
+        drawHLine(icon.x,
+                  icon.y + 16, icon.len * 8, RED); // add an underline
+
+        if (startMenuState.curRow == 0)
+        {
+            startMenuState.settings.difficultyLevel = startMenuState.curCol; // set the difficulty level
+        }
+        else if (startMenuState.curRow == 1)
+        {
+            startMenuState.settings.mins = startMenuState.curCol; // set the time limit
+        }
+        else
+        {
+            transitionToState(&player1, GAME_PLAYING); // transition to game playing state
+        }
+    }
+    else
+    {
+        // update curRow and curCol based on joystick input
+        if (index == -1)
+        {
+            return; // no selection made
+        }
+        int rowChange[] = {-1, 1, 0, 0};
+        int colChange[] = {0, 0, -1, 1};
+
+        if (index >= 0 && index < 4)
+        {
+            int newRow = startMenuState.curRow + rowChange[index];
+            int newCol = startMenuState.curCol + colChange[index];
+
+            if (newRow >= 0 && (newRow < ROWS || newRow == START_GAME_ROW))
+            {
+                startMenuState.curRow = newRow;
+            }
+            if (newCol >= 0 && newCol < COLS)
+            {
+                startMenuState.curCol = newCol;
+            }
+        }
+    }
+}
+void generateNumbers(Player *player, int difficulty)
+{
+    int chosenIndex = 0;
+    for (int i = 0; i < MAX_SIZE; i++)
+    {
+        if (arrSol[i][4] == difficulty)
+        {
+            chosenIndex = i;
+            arrSol[i][4] = -1; // mark the solution as used
+            break;
+        }
+    }
     for (int i = 0; i < 4; i++)
     {
-        player->nums[i] = arrSol[rand_index][i];
+        player->nums[i] = arrSol[chosenIndex][i];
     }
 
     for (int j = 0; j < 4; j++)
@@ -402,21 +484,21 @@ void skipLevel(Player *player)
 
         // draw cards
         pasteImage(player->cards[i].image, IMG_HEIGHT, IMG_WIDTH,
-                   player->cards[i].x, player->cards[i].y);
+                   player->cards[i].x, player->cards[i].y, BACKGROUND);
     }
 
     // erase outlines
     for (int i = 0; i < 4; i++)
     {
         drawRect(player->cards[i].x - 2, player->cards[i].y - 2,
-                 2 * IMG_WIDTH + 4, IMG_HEIGHT + 4, BLACK); // draw a card outline
+                 2 * IMG_WIDTH + 4, IMG_HEIGHT + 4, BACKGROUND); // draw a card outline
     }
     int offset = -5;
     // erase previous operator underlines
-    drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + 20, 10, BLACK);
-    drawHLine(player->cards[0].x + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BLACK);
-    drawHLine(player->cards[0].x + IMG_WIDTH + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BLACK);
-    drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 2 + 10, 10, BLACK);
+    drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + 20, 10, BACKGROUND);
+    drawHLine(player->cards[0].x + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BACKGROUND);
+    drawHLine(player->cards[0].x + IMG_WIDTH + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BACKGROUND);
+    drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 2 + 10, 10, BACKGROUND);
 }
 
 void slideCards(Player *player)
@@ -447,7 +529,8 @@ void slideCards(Player *player)
                       player->cards[i].x,
                       player->cards[i].y,
                       player->cards[i].x + stepX,
-                      player->cards[i].y + stepY);
+                      player->cards[i].y + stepY,
+                      BACKGROUND);
             player->cards[i].x += stepX;
             player->cards[i].y += stepY;
             allCardsSlid = false;
@@ -474,7 +557,7 @@ void flipCards(Player *player)
         {
             flipImage((const unsigned char *)backOfCard, IMG_HEIGHT, IMG_WIDTH,
                       player->cards[i].x, player->cards[i].y,
-                      (const unsigned char *)player->cards[i].image, player->cards[i].flipProgress);
+                      (const unsigned char *)player->cards[i].image, player->cards[i].flipProgress, BACKGROUND);
 
             player->cards[i].flipProgress += 0.1; // Increment the flip progress
         }
@@ -484,7 +567,7 @@ void flipCards(Player *player)
 void drawDeck()
 {
     pasteImage((const unsigned char *)backOfCard, IMG_HEIGHT, IMG_WIDTH,
-               270, 10); // Draw the back of the card
+               270, 10, BACKGROUND); // Draw the back of the card
     drawHLine(270, 130, 100, WHITE);
     drawHLine(270, 131, 100, DARK_BLUE);
     drawHLine(270, 132, 100, WHITE);
@@ -499,51 +582,114 @@ void drawStartMenu()
 {
     // draw the logo
     pasteImage((const unsigned char *)logo, LOGO_HEIGHT, LOGO_WIDTH,
-               30, 80);
+               30, 80, BACKGROUND);
 
-    setTextColorBig(WHITE, BLACK);
+    setTextColorBig(RED, BACKGROUND);
 
     // difficulty select
-    setCursor(470, 100);
-    writeStringBold("Difficulty: ");
-
-    setCursor(406, 130);
-    writeStringBold("Easy");
-
-    setCursor(480, 130);
-    writeStringBold("Medium");
-
-    setCursor(550, 130);
-    writeStringBold("Hard");
+    setCursor(450, 100);
+    writeStringBig("Difficulty: ");
 
     // time limit select
     setCursor(470, 200);
-    writeStringBold("Time: ");
+    writeStringBig("Time: ");
 
-    setCursor(406, 230);
-    writeStringBold("1 min");
+    setTextColorBig(RED, BACKGROUND);
+    setCursor(450, 350);
+    writeStringBig("Start Game");
 
-    setCursor(480, 230);
-    writeStringBold("2 min");
+    setTextColorBig(WHITE, BACKGROUND);
 
-    setCursor(550, 230);
-    writeStringBold("3 min");
+    for (int i = 0; i < ROWS; i++)
+    {
+        for (int j = 0; j < COLS; j++)
+        {
+            setCursor(startMenuIcons[i][j].x, startMenuIcons[i][j].y);
+            writeStringBig(startMenuIcons[i][j].text);
+        }
+    }
 
-    // leaderboard display
-    setCursor(470, 300);
-    writeStringBold("Leaderboard: ");
+    MenuIcon initiDiffIcon = startMenuIcons[0][0];
+    MenuIcon initTimeIcon = startMenuIcons[1][0];
+    // draw initial underliens
+    // drawHLine(initiDiffIcon.x,
+    //           initiDiffIcon.y + 16, initiDiffIcon.len * 8, RED);
+    // drawHLine(initTimeIcon.x,
+    //           initTimeIcon.y + 16, initTimeIcon.len * 8, RED);
+}
+
+void animateStartMenu()
+{
+    if (startMenuState.curRow == START_GAME_ROW)
+    {
+        // blink the start game text
+        if ((time_us_32() >> 18) & 1)
+        {
+            fillRect(450, 350, 100, 15, BACKGROUND);
+        }
+        else
+        {
+            setTextColorBig(RED, BACKGROUND);
+            setCursor(450, 350);
+            writeStringBig("Start Game");
+        }
+    }
+    else
+    {
+        setTextColorBig(RED, BACKGROUND);
+        setCursor(450, 350);
+        writeStringBig("Start Game");
+    }
+    for (int i = 0; i < ROWS; i++)
+    {
+        for (int j = 0; j < COLS; j++)
+        {
+            // blink the text if i == curRow && j == curCol
+            if (i == startMenuState.curRow && j == startMenuState.curCol)
+            {
+                if ((time_us_32() >> 18) & 1)
+                {
+                    fillRect(startMenuIcons[i][j].x, startMenuIcons[i][j].y, 50, 15, BACKGROUND);
+                }
+                else
+                {
+                    setTextColorBig(startMenuIcons[i][j].color, BACKGROUND);
+                    setCursor(startMenuIcons[i][j].x, startMenuIcons[i][j].y);
+                    writeStringBig(startMenuIcons[i][j].text);
+                }
+            }
+            else
+            {
+                setTextColorBig(startMenuIcons[i][j].color, BACKGROUND);
+                setCursor(startMenuIcons[i][j].x, startMenuIcons[i][j].y);
+                writeStringBig(startMenuIcons[i][j].text);
+            }
+        }
+    }
 }
 
 void drawOperators(Player *player)
 {
     int offset = -5;
     // Draw the operators
-    drawCharBig(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT - offset, '+', WHITE, BLACK);
-    drawCharBig(player->cards[0].x + IMG_WIDTH - IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4, '/', WHITE, BLACK);
-    drawCharBig(player->cards[0].x + IMG_WIDTH + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4, '*', WHITE, BLACK);
-    drawCharBig(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 2 + offset, '-', WHITE, BLACK);
+    drawCharBig(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT - offset, '+', WHITE, BACKGROUND);
+    drawCharBig(player->cards[0].x + IMG_WIDTH - IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4, '/', WHITE, BACKGROUND);
+    drawCharBig(player->cards[0].x + IMG_WIDTH + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4, '*', WHITE, BACKGROUND);
+    drawCharBig(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 2 + offset, '-', WHITE, BACKGROUND);
 }
 
+void drawRoundParams()
+{
+    setTextColor2(WHITE, BACKGROUND);
+    setCursor(5, 5);
+    writeStringBig("Player 1: ");
+    setCursor(5, 25);
+    writeStringBig("Player 2: ");
+    setCursor(5, 45);
+    writeStringBig("Time Left: ");
+    setCursor(5, 65);
+    writeStringBig("Difficulty: ");
+}
 void transitionToState(Player *player, GameState newState)
 {
     stateTransition = true; // Set the state transition flag
@@ -551,24 +697,26 @@ void transitionToState(Player *player, GameState newState)
     {
     case START_MENU:
         // Clear the screen
-        fillRect(0, 0, 640, 480, BLACK);
+        fillRect(0, 0, 640, 480, BACKGROUND);
         prepNewRound();
+        drawStartMenu();
         player1.currentState = START_MENU;
         player2.currentState = START_MENU;
         break;
     case GAME_PLAYING:
         printf("In Game Playing State\n\r");
-        fillRect(0, 0, 640, 480, BLACK);
-        generateNumbers(&player1);
-        generateNumbers(&player2);
+        fillRect(0, 0, 640, 480, BACKGROUND);
+        generateNumbers(&player1, startMenuState.settings.difficultyLevel);
+        generateNumbers(&player2, startMenuState.settings.difficultyLevel);
+        drawRoundParams();
         player1.currentState = GAME_PLAYING;
         player2.currentState = GAME_PLAYING;
         break;
     case GAME_OVER:
         // Clear the screen and display "Game Over!"
-        fillRect(0, 0, 640, 480, BLACK);
+        fillRect(0, 0, 640, 480, BACKGROUND);
         setCursor(248, 200);
-        setTextColor2(WHITE, BLACK);
+        setTextColor2(WHITE, BACKGROUND);
         writeStringBig("Game Over!");
         player1.currentState = GAME_OVER;
         player2.currentState = GAME_OVER;
@@ -586,18 +734,11 @@ void executeStep(Player *player)
     switch (player->currentState)
     {
     case START_MENU:
-        pasteImage((const unsigned char *)logo, LOGO_HEIGHT, LOGO_WIDTH,
-                   30, 80); // Draw the logo
-
-        // // Blink the text NOTE: base x position on the selection
-        // if ((time_us_32() / 500000) % 2 == 0)
-        // {
-        //     fillRect(248, 200, 400, 50, BLACK);
-        // }
-
-        // setCursor(340, 200);
-        // setTextColor2(WHITE, BLACK);
-        // writeStringBig("1 Player");
+        // lock
+        uint32_t irq_status = spin_lock_blocking(menuLock);
+        animateStartMenu();
+        // unlock
+        spin_unlock(menuLock, irq_status);
         break;
     case GAME_PLAYING:
         drawDeck();

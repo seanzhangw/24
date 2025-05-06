@@ -1,6 +1,7 @@
 #pragma once
 #include "vga_driver/vga16_graphics.h"
 #include "hardware/clocks.h"
+#include "hardware/sync.h"
 #include "hardware/timer.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,6 +9,22 @@
 #include <time.h>
 
 /* ------------------------ BEGIN: Game State --------------------------------*/
+#define ROWS 2
+#define COLS 3
+
+#define START_GAME_ROW 2
+
+typedef struct
+{
+    int x;
+    int y;
+    char color;
+    int len;
+    char *text;
+} MenuIcon;
+
+extern MenuIcon startMenuIcons[ROWS][COLS]; // Global variable for the start menu icons
+
 typedef enum
 {
     EASY,
@@ -18,8 +35,21 @@ typedef enum
 typedef struct
 {
     Difficulty difficultyLevel; // Easy, Medium, Hard
-    // GameMode gameMode;
+    int mins;
 } Settings;
+
+#define SPINLOCK_ID 0
+
+typedef struct
+{
+    int curRow;
+    int curCol;
+    Settings settings;
+} StartMenuState;
+
+extern spin_lock_t *menuLock;
+
+extern StartMenuState startMenuState; // Global variable for the start menu state
 
 typedef struct
 {
@@ -110,6 +140,8 @@ void cardSelect(Player *player);
 void sol_init();
 
 void handle_card_select(Player *player, bool enterPressed, int index);
+
+void handle_start_menu_input(bool enterPressed, int index);
 
 void resetLevel(Player *player);
 

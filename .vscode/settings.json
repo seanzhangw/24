@@ -43,6 +43,7 @@
         "permute.h": "c",
         "stdio.h": "c",
         "pt_cornell_rp2040_v1_3.h": "c",
-        "input_handler.h": "c"
+        "input_handler.h": "c",
+        "array_collection_difficultylevel.h": "c"
     }
 }

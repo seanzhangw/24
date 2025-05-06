@@ -45,9 +45,10 @@
 #include "game_state.h"
 #include "array_collection_difficultylevel.h"
 #include "input_handler.h"
+#include "eeprom.h"
 
 #define FRAME_RATE 33000
-
+#define JOYSTICK_COOLDOWN_US 150000 // 500ms cooldown for joystick input
 // ==================================================
 // === game controller thread
 // ==================================================
@@ -59,14 +60,26 @@ static PT_THREAD(protothread_serial(struct pt *pt))
     switch (player1.currentState)
     {
     case START_MENU:
+      static int lastJoystickTime = 0;
+      if (time_us_32() - lastJoystickTime > JOYSTICK_COOLDOWN_US)
+      {
+        adc_select_input(ADC_CHAN0);
+        int joystick_x = adc_read();
+        adc_select_input(ADC_CHAN1);
+        int joystick_y = adc_read();
+
+        int index = joystickSelect(joystick_x, joystick_y);
+        handle_start_menu_input(false, index);
+        lastJoystickTime = time_us_32();
+      }
+
       // Read button inputs
-      if (gpio_get(BUTTON_PIN_P1_E) == 0 || gpio_get(BUTTON_PIN_P1_R) == 0)
+      if (gpio_get(BUTTON_PIN_P1_E) == 0)
       {
         // ghetto debouncing
-        while (gpio_get(BUTTON_PIN_P1_E) == 0 || gpio_get(BUTTON_PIN_P1_R) == 0)
+        while (gpio_get(BUTTON_PIN_P1_E) == 0)
           ;
-
-        transitionToState(&player1, GAME_PLAYING);
+        handle_start_menu_input(true, -1);
       }
       // TODO: Add joystick reads here in the future
       break;
@@ -76,8 +89,6 @@ static PT_THREAD(protothread_serial(struct pt *pt))
 
       adc_select_input(ADC_CHAN1);
       int joystick_y = adc_read();
-
-      // int joystick_y = ads1115_read_single_channel(6);
 
       // User Selection
       int index = joystickSelect(joystick_x, joystick_y);
@@ -166,19 +177,28 @@ static PT_THREAD(protothread_serial1(struct pt *pt))
     switch (player2.currentState)
     {
     case START_MENU:
-      // Read button inputs
-      if (gpio_get(BUTTON_PIN_P2_E) == 0 || gpio_get(BUTTON_PIN_P2_R) == 0)
+      static int lastJoystickTime = 0;
+      if (time_us_32() - lastJoystickTime > JOYSTICK_COOLDOWN_US)
       {
+        int joystick_x = ads1115_read_single_channel(7);
+        int joystick_y = ads1115_read_single_channel(4);
 
-        // ghetto debouncing
-        while (gpio_get(BUTTON_PIN_P2_E) == 0 || gpio_get(BUTTON_PIN_P2_R) == 0)
-          ;
-
-        transitionToState(&player2, GAME_PLAYING);
+        int index = joystickSelect(joystick_x, joystick_y);
+        handle_start_menu_input(false, index);
+        lastJoystickTime = time_us_32();
       }
+
+      // Read button inputs
+      if (gpio_get(BUTTON_PIN_P2_E) == 0)
+      {
+        // ghetto debouncing
+        while (gpio_get(BUTTON_PIN_P2_E) == 0)
+          ;
+        handle_start_menu_input(true, -1);
+      }
+      // TODO: Add joystick reads here in the future
       break;
     case GAME_PLAYING:
-
       int joystick_x = ads1115_read_single_channel(7);
       int joystick_y = ads1115_read_single_channel(4);
 
@@ -289,18 +309,13 @@ int main()
   // initialize VGA
   initVGA();
 
-  // initialize solutions
+  // // initialize solutions
   sol_init();
+
+  init_eeprom();
 
   // initialize controllers
   initController();
-  for (int i = 0; i < MAX_SIZE; i++) 
-  {
-    printf("index: %d", i);
-    printf("[%d, %d, %d, %d]\n", arrSol[i][0], arrSol[i][1], arrSol[i][2], arrSol[i][3]);
-  }
-
-
   // start core 1
   multicore_reset_core1();
   multicore_launch_core1(&core1_main);
@@ -309,8 +324,8 @@ int main()
   pt_add_thread(protothread_serial);
   pt_add_thread(protothread_anim);
 
+  menuLock = spin_lock_instance(SPINLOCK_ID);
   transitionToState(&player1, START_MENU);
-
   // start scheduler
   pt_schedule_start;
 }
