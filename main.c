@@ -60,18 +60,19 @@ static PT_THREAD(protothread_serial(struct pt *pt))
     switch (player1.currentState)
     {
     case START_MENU:
-      static int lastJoystickTime = 0;
-      if (time_us_32() - lastJoystickTime > JOYSTICK_COOLDOWN_US)
-      {
-        adc_select_input(ADC_CHAN0);
-        int joystick_x = adc_read();
-        adc_select_input(ADC_CHAN1);
-        int joystick_y = adc_read();
+      static JoystickDir lastJoystickDir = NEUTRAL;
+      adc_select_input(ADC_CHAN0);
+      int joystick_x = adc_read();
+      adc_select_input(ADC_CHAN1);
+      int joystick_y = adc_read();
 
-        int index = joystickSelect(joystick_x, joystick_y);
+      sleep_us(400); // Small delay to stabilize joystick readings
+      JoystickDir index = joystickSelect(joystick_x, joystick_y);
+      if (index != NEUTRAL && lastJoystickDir == NEUTRAL)
+      {
         handle_start_menu_input(false, index);
-        lastJoystickTime = time_us_32();
       }
+      lastJoystickDir = index;
 
       // Read button inputs
       if (gpio_get(BUTTON_PIN_P1_E) == 0)
@@ -85,13 +86,13 @@ static PT_THREAD(protothread_serial(struct pt *pt))
       break;
     case GAME_PLAYING:
       adc_select_input(ADC_CHAN0);
-      int joystick_x = adc_read();
+      joystick_x = adc_read();
 
       adc_select_input(ADC_CHAN1);
-      int joystick_y = adc_read();
+      joystick_y = adc_read();
 
       // User Selection
-      int index = joystickSelect(joystick_x, joystick_y);
+      index = joystickSelect(joystick_x, joystick_y);
 
       if (gpio_get(BUTTON_PIN_P1_S) == 0)
       {
@@ -177,16 +178,17 @@ static PT_THREAD(protothread_serial1(struct pt *pt))
     switch (player2.currentState)
     {
     case START_MENU:
-      static int lastJoystickTime = 0;
-      if (time_us_32() - lastJoystickTime > JOYSTICK_COOLDOWN_US)
-      {
-        int joystick_x = ads1115_read_single_channel(7);
-        int joystick_y = ads1115_read_single_channel(4);
+      static JoystickDir lastJoystickDir = NEUTRAL;
+      int joystick_x = ads1115_read_single_channel(7);
+      int joystick_y = ads1115_read_single_channel(4);
 
-        int index = joystickSelect(joystick_x, joystick_y);
+      sleep_us(400); // Small delay to stabilize joystick readings
+      JoystickDir index = joystickSelect(joystick_x, joystick_y);
+      if (index != NEUTRAL && lastJoystickDir == NEUTRAL)
+      {
         handle_start_menu_input(false, index);
-        lastJoystickTime = time_us_32();
       }
+      lastJoystickDir = index;
 
       // Read button inputs
       if (gpio_get(BUTTON_PIN_P2_E) == 0)
@@ -199,11 +201,11 @@ static PT_THREAD(protothread_serial1(struct pt *pt))
       // TODO: Add joystick reads here in the future
       break;
     case GAME_PLAYING:
-      int joystick_x = ads1115_read_single_channel(7);
-      int joystick_y = ads1115_read_single_channel(4);
+      joystick_x = ads1115_read_single_channel(7);
+      joystick_y = ads1115_read_single_channel(4);
 
       // User Selection
-      int index = joystickSelect_ads(joystick_x, joystick_y);
+      index = joystickSelect_ads(joystick_x, joystick_y);
       // f("index: %d\n", index);
 
       if (gpio_get(BUTTON_PIN_P2_S) == 0)

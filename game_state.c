@@ -70,7 +70,6 @@ void prepNewRound()
 
 void resetLevel(Player *player)
 {
-    printf("reached reset level\n");
     // restore default card states
     player->opStage = SELECT_NUM1;
     player->num1 = -1;
@@ -614,11 +613,6 @@ void drawStartMenu()
 
     MenuIcon initiDiffIcon = startMenuIcons[0][0];
     MenuIcon initTimeIcon = startMenuIcons[1][0];
-    // draw initial underliens
-    // drawHLine(initiDiffIcon.x,
-    //           initiDiffIcon.y + 16, initiDiffIcon.len * 8, RED);
-    // drawHLine(initTimeIcon.x,
-    //           initTimeIcon.y + 16, initTimeIcon.len * 8, RED);
 }
 
 void animateStartMenu()
@@ -741,7 +735,6 @@ void transitionToState(Player *player, GameState newState)
         generateNumbers(&player1, startMenuState.settings.difficultyLevel);
         generateNumbers(&player2, startMenuState.settings.difficultyLevel);
         gameFlags.secondsLeft = startMenuState.settings.mins * 60; // Set the time limit
-        printf("Time Left: %d\n\r", gameFlags.secondsLeft);
         player1.currentState = GAME_PLAYING;
         player2.currentState = GAME_PLAYING;
 
@@ -779,7 +772,6 @@ void executeStep(Player *player)
         spin_unlock(menuLock, irq_status);
         break;
     case GAME_PLAYING:
-
         drawDeck();
 
         slideCards(player); // Slide the cards
