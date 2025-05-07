@@ -10,7 +10,7 @@
 #include "hardware/dma.h"
 #include "hardware/spi.h"
 
-// #include "background.h" // none of these can be include, otherwise compile error: multyiple definition
+// #include "background.h" // none of these can be include, otherwise compile error: multiple definition
 // #include "bingo.h"
 // #include "buzzer.h"
 // #include "deal_cards.h"
@@ -25,6 +25,7 @@ spin_lock_t *menuLock; // Spinlock for the start menu
 spin_lock_t *paramLock;
 
 extern int data_chan;
+extern unsigned short *DAC_data_background;
 extern unsigned short *DAC_data_deal;
 extern unsigned short *DAC_data_flip;
 
@@ -540,6 +541,8 @@ void slideCards(Player *player)
         if (player->cards[i].x != player->cards[i].destX || player->cards[i].y != player->cards[i].destY)
         {
             dma_start_channel_mask(1u << data_chan);
+            // debug print
+            printf("DMA channel %d started for deal\n", data_chan);
 
             int dx = player->cards[i].destX - player->cards[i].x;
             int dy = player->cards[i].destY - player->cards[i].y;
@@ -590,14 +593,15 @@ void flipCards(Player *player)
         {
             dma_channel_set_read_addr(data_chan, DAC_data_flip, false); // set new source address
             // dma_channel_set_trans_count(data_chan, flip_cards_audio_len, false); // set new length
-            dma_channel_set_trans_count(data_chan, 6880, false); // set new length ^
-            // dma_channel_start(data_chan); //another function has the same functionality
+            dma_channel_set_trans_count(data_chan, 6880, false); // hardcoded length
+
             // start the control channel
             dma_start_channel_mask(1u << data_chan);
+            // dma_channel_start(data_chan); //another function has similar functionality
+
             // debug print
-            printf("actual DMA channel %d\n", data_chan);
-            printf("DMA started\n");
-                }
+            printf("DMA channel %d started for flip\n", data_chan);
+        }
 
         if (player->cards[i].flipProgress <= 1.0 + 0.01)
         {
