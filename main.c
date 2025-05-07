@@ -47,8 +47,8 @@
 #include "array_collection_difficultylevel.h"
 #include "input_handler.h"
 
-// #include "background.h"
-// #include "bingo.h" 
+#include "background.h"
+// #include "bingo.h"
 // #include "buzzer.h"
 #include "deal_cards.h" // should move into main.c
 // #include "final_victory.h"
@@ -62,18 +62,18 @@
 
 // SPI pin definitions
 #define PIN_MISO 12
-#define PIN_CS   13
-#define PIN_SCK  14
+#define PIN_CS 13
+#define PIN_SCK 14
 #define PIN_MOSI 15
 #define SPI_PORT spi1
 
 // DAC command configuration: A-channel, 1x gain, active mode
 #define DAC_config_chan_A 0b0011000000000000
 
-int data_chan = 666; 
-unsigned short *DAC_data_background = NULL;
-unsigned short *DAC_data_deal = NULL;
-unsigned short *DAC_data_flip = NULL;
+int data_chan = 666;
+const unsigned short *DAC_data_background = NULL;
+const unsigned short *DAC_data_deal = NULL;
+const unsigned short *DAC_data_flip = NULL;
 
 // ==================================================
 // === game controller thread
@@ -334,10 +334,6 @@ int main()
   // initialize stdio
   stdio_init_all();
 
-  // unsigned short *DAC_data_deal = NULL;
-  // unsigned short *DAC_data_flip = NULL;
-  // static const uint32_t sample_count_ = {deal_cards_audio_len, flip_cards_audio_len};
-
   // SPI setup (do once)
   spi_init(SPI_PORT, 20000000);
   spi_set_format(SPI_PORT, 16, 0, 0, 0);
@@ -346,25 +342,12 @@ int main()
   gpio_set_function(PIN_SCK, GPIO_FUNC_SPI);
   gpio_set_function(PIN_MOSI, GPIO_FUNC_SPI);
 
-  // Prepare wrapped audio, changed into loop? x 
+  // Prepare wrapped audio, changed into loop? x
   // static unsigned short *DAC_data[MAX_AUDIO_FILES] = {NULL};
-  DAC_data_deal = (unsigned short *)malloc(deal_cards_audio_len * sizeof(unsigned short));
-  if (!DAC_data_deal) {
-      printf("DAC_data1 malloc failed!\n");
-  }
+  DAC_data_background = background_audio; // 
+  DAC_data_deal = deal_cards_audio;
+  DAC_data_flip = flip_cards_audio; // 6880
 
-  for (uint32_t i = 0; i < deal_cards_audio_len; ++i) {
-      DAC_data_deal[i] = DAC_config_chan_A | (deal_cards_audio[i] & 0x0fff);
-  }
-
-  DAC_data_flip = (unsigned short *)malloc(flip_cards_audio_len * sizeof(unsigned short));
-  if (!DAC_data_flip) {
-      printf("DAC_data2 malloc failed!\n");
-  }
-
-  for (uint32_t i = 0; i < flip_cards_audio_len; ++i) {
-      DAC_data_flip[i] = DAC_config_chan_A | (flip_cards_audio[i] & 0x0fff);
-  }
 
   // DAC_data_background = (unsigned short *)malloc(background_audio_len * sizeof(unsigned short));
   // if (!DAC_data_background) {
@@ -382,14 +365,14 @@ int main()
   channel_config_set_read_increment(&c, true);
   channel_config_set_write_increment(&c, false);
   dma_timer_set_fraction(0, 0x0006, 0xffff); // ~11.025 kHz
-  channel_config_set_dreq(&c, 0x3b); // Timer 0 pacing
+  channel_config_set_dreq(&c, 0x3b);         // Timer 0 pacing
 
   dma_channel_configure(
       data_chan, &c,
       &spi_get_hw(SPI_PORT)->dr,
-      DAC_data_deal, //DAC_data
-      deal_cards_audio_len, //sample_count
-      false // DO NOT Start immediately
+      DAC_data_deal,        // DAC_data
+      deal_cards_audio_len, // sample_count
+      false                 // DO NOT Start immediately
   );
 
   // dma_channel_configure(

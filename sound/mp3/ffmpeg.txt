@@ -1,0 +1,12 @@
+// Convert mp3 to wav
+
+ffmpeg -i background.mp3 -acodec pcm_u8 -ar 11025 -ac 1 background.wav
+ffmpeg -i bingo.mp3 -acodec pcm_u8 -ar 11025 -ac 1 bingo.wav
+ffmpeg -i buzzer.mp3 -acodec pcm_u8 -ar 11025 -ac 1 buzzer.wav
+ffmpeg -i deal_cards.mp3 -acodec pcm_u8 -ar 11025 -ac 1 deal_cards.wav
+ffmpeg -i final_victory.mp3 -acodec pcm_u8 -ar 11025 -ac 1 final_victory.wav
+ffmpeg -i flip_cards.mp3 -acodec pcm_u8 -ar 11025 -ac 1 flip_cards.wav
+
+for file in *.mp3; do
+  ffmpeg -i "$file" -acodec pcm_u8 -ar 11025 -ac 1 "${file%.mp3}.wav"
+done
