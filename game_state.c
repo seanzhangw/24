@@ -11,7 +11,7 @@
 #include "hardware/spi.h"
 
 // #include "background.h" // none of these can be include, otherwise compile error: multyiple definition
-// #include "bingo.h" 
+// #include "bingo.h"
 // #include "buzzer.h"
 // #include "deal_cards.h"
 // #include "final_victory.h"
@@ -538,8 +538,8 @@ void slideCards(Player *player)
     {
         // Check if the card is not already at its destination
         if (player->cards[i].x != player->cards[i].destX || player->cards[i].y != player->cards[i].destY)
-        {        
-            dma_start_channel_mask(1u << data_chan) ;
+        {
+            dma_start_channel_mask(1u << data_chan);
 
             int dx = player->cards[i].destX - player->cards[i].x;
             int dy = player->cards[i].destY - player->cards[i].y;
@@ -582,27 +582,22 @@ void slideCards(Player *player)
 }
 
 void flipCards(Player *player)
-{   
-    // dma_channel_set_read_addr(data_chan, DAC_data_flip, false);  // 设置新的源地址
-    // // dma_channel_set_trans_count(data_chan, flip_cards_audio_len, false); // 设置新长度
-    // dma_channel_set_trans_count(data_chan, 6880, false); // 设置新长度
-    // // dma_channel_start(data_chan);  // 启动 DMA 传输
-    // // start the control channel
-    // dma_start_channel_mask(1u << data_chan) ;
-    // // debug print
-    // printf("actual DMA channel %d\n", data_chan);
-    // printf("DMA started\n");
-    
+{
+
     for (int i = 0; i < 4; i++)
     {
-        if (player->cards[0].flipProgress == 0) {
-            dma_channel_set_read_addr(data_chan, DAC_data_flip, false);  // set new source address
+        if (player->cards[0].flipProgress == 0)
+        {
+            dma_channel_set_read_addr(data_chan, DAC_data_flip, false); // set new source address
             // dma_channel_set_trans_count(data_chan, flip_cards_audio_len, false); // set new length
             dma_channel_set_trans_count(data_chan, 6880, false); // set new length ^
             // dma_channel_start(data_chan); //another function has the same functionality
             // start the control channel
-            dma_start_channel_mask(1u << data_chan) ;
-        }
+            dma_start_channel_mask(1u << data_chan);
+            // debug print
+            printf("actual DMA channel %d\n", data_chan);
+            printf("DMA started\n");
+                }
 
         if (player->cards[i].flipProgress <= 1.0 + 0.01)
         {
@@ -611,7 +606,7 @@ void flipCards(Player *player)
                       (const unsigned char *)player->cards[i].image, player->cards[i].flipProgress, BACKGROUND);
 
             player->cards[i].flipProgress += 0.1; // Increment the flip progress
-        }  
+        }
     }
 }
 

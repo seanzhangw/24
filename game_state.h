@@ -9,7 +9,6 @@
 #include <string.h>
 #include <time.h>
 
-
 /* ------------------------ BEGIN: Start Menu --------------------------------*/
 #define ROWS 2
 #define COLS 3
@@ -140,7 +139,6 @@ extern Player player2; // Player 2
 extern char operations[];
 
 extern volatile bool stateTransition;
-
 
 void transitionToState(Player *player, GameState newState);
 
