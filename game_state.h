@@ -1,4 +1,4 @@
-#pragma once
+#pragma once // pragmatic info
 #include "vga_driver/vga16_graphics.h"
 #include "hardware/clocks.h"
 #include "hardware/timer.h"
@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+
 
 /* ------------------------ BEGIN: Game State --------------------------------*/
 typedef enum
@@ -37,7 +38,8 @@ typedef enum
     GAME_OVER
 } GameState;
 /* ------------------------ END: Game State --------------------------------*/
-/* ----------------------------- BEGIN: Card State ---------------------------*/
+
+/* --------------------------- BEGIN: Card State ---------------------------*/
 typedef enum
 {
     DEFAULT,
@@ -88,6 +90,7 @@ extern Player player2; // Player 2
 extern char operations[];
 
 extern volatile bool stateTransition;
+
 void transitionToState(Player *player, GameState newState);
 
 void executeStep(Player *player);
@@ -99,3 +102,5 @@ void sol_init();
 void handle_card_select(Player *player, bool enterPressed, int index);
 
 void resetLevel(Player *player);
+
+void slideCards(Player *player);

@@ -1,4 +1,4 @@
-#pragma once
+#pragma once // pragmatic info
 // Include standard libraries
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,8 +23,8 @@
 
 #define BUTTON_PIN_P1_R 2
 #define BUTTON_PIN_P2_R 3
-#define BUTTON_PIN_P1_E 4
-#define BUTTON_PIN_P2_E 5
+#define BUTTON_PIN_P1_E 10
+#define BUTTON_PIN_P2_E 11
 
 // ADC reading values
 #define DEADZONE 1000 // reduce noise
