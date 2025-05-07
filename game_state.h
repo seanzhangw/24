@@ -1,14 +1,32 @@
 #pragma once // pragmatic info
 #include "vga_driver/vga16_graphics.h"
 #include "hardware/clocks.h"
+#include "hardware/sync.h"
 #include "hardware/timer.h"
+#include "input_handler.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
 
-/* ------------------------ BEGIN: Game State --------------------------------*/
+/* ------------------------ BEGIN: Start Menu --------------------------------*/
+#define ROWS 2
+#define COLS 3
+
+#define START_GAME_ROW 2
+
+typedef struct
+{
+    int x;
+    int y;
+    char color;
+    int len;
+    char *text;
+} MenuIcon;
+
+extern MenuIcon startMenuIcons[ROWS][COLS]; // Global variable for the start menu icons
+
 typedef enum
 {
     EASY,
@@ -19,8 +37,26 @@ typedef enum
 typedef struct
 {
     Difficulty difficultyLevel; // Easy, Medium, Hard
-    // GameMode gameMode;
+    int mins;
 } Settings;
+
+typedef struct
+{
+    int curRow;
+    int curCol;
+    Settings settings;
+    JoystickDir lastMenuDir;
+} StartMenuState;
+
+#define MENU_LOCK_ID 0
+#define PARAM_LOCK_ID 1
+
+extern spin_lock_t *menuLock;
+extern spin_lock_t *paramLock; // Spinlock for the start menu
+
+extern StartMenuState startMenuState; // Global variable for the start menu state
+/* ------------------------- END: Start Menu ---------------------------------*/
+/* ------------------------ BEGIN: Game State --------------------------------*/
 
 typedef struct
 {
@@ -28,7 +64,8 @@ typedef struct
     bool player2CardsSlid;
     bool player1Win;
     bool player2Win;
-} sharedFlags;
+    volatile int secondsLeft;
+} GameFlags;
 
 // Define the game states
 typedef enum
@@ -51,7 +88,7 @@ typedef enum
 
 typedef struct
 {
-    int value;
+    float value;
     const unsigned char *image;
     int x;
     int y;
@@ -60,6 +97,19 @@ typedef struct
     float flipProgress;
     CardState state;
 } Card;
+
+typedef enum
+{
+    OP_DEFAULT,
+    OP_HOVERED,
+    OP_SELECTED,
+} operatorState;
+
+typedef struct
+{
+    operatorState state;
+    char op;
+} Operator;
 
 typedef enum
 {
@@ -73,12 +123,12 @@ typedef enum
 typedef struct
 {
     GameState currentState;
-    int nums[4];   // Array to hold the numbers
+    float nums[4]; // Array to hold the numbers
     Card cards[4]; // Array to hold the cards
-    bool onLeft;   // True if player is on left side of screen
-    int num1;
-    int num2;
-    char op;
+    Operator operator;
+    int score;
+    float num1;
+    float num2;
     Stage opStage; // Where each player is when performing operation
     int playerNum;
 } Player;
@@ -91,6 +141,7 @@ extern char operations[];
 
 extern volatile bool stateTransition;
 
+
 void transitionToState(Player *player, GameState newState);
 
 void executeStep(Player *player);
@@ -101,6 +152,10 @@ void sol_init();
 
 void handle_card_select(Player *player, bool enterPressed, int index);
 
+void handle_start_menu_input(bool enterPressed, int index);
+
 void resetLevel(Player *player);
+
+void skipLevel(Player *player, int difficulty);
 
 void slideCards(Player *player);

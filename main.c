@@ -56,6 +56,7 @@
 
 // const int num_of_audio_files = 2;
 #define MAX_AUDIO_FILES 2
+#include "eeprom.h"
 
 #define FRAME_RATE 33000
 
@@ -80,39 +81,59 @@ unsigned short *DAC_data_flip = NULL;
 static PT_THREAD(protothread_serial(struct pt *pt))
 {
   PT_BEGIN(pt);
-
   while (1)
   {
     switch (player1.currentState)
     {
     case START_MENU:
-      // Read button inputs
-      if (gpio_get(BUTTON_PIN_P1_E) == 0 || gpio_get(BUTTON_PIN_P1_R) == 0)
-      {
-        // ghetto debouncing
-        while (gpio_get(BUTTON_PIN_P1_E) == 0 || gpio_get(BUTTON_PIN_P1_R) == 0)
-          ;
-
-        transitionToState(&player1, GAME_PLAYING); // trigger dma channel!!!
-      }
-      // TODO: Add joystick reads here in the future
-      break;
-    case GAME_PLAYING:
-
+      static JoystickDir lastJoystickDir = NEUTRAL;
       adc_select_input(ADC_CHAN0);
       int joystick_x = adc_read();
       adc_select_input(ADC_CHAN1);
       int joystick_y = adc_read();
 
-      // User Selection
-      int index = joystickSelect(joystick_x, joystick_y);
+      sleep_us(400); // Small delay to stabilize joystick readings
+      JoystickDir index = joystickSelect(joystick_x, joystick_y);
+      if (index != NEUTRAL && lastJoystickDir == NEUTRAL)
+      {
+        handle_start_menu_input(false, index);
+      }
+      lastJoystickDir = index;
 
+      // Read button inputs
       if (gpio_get(BUTTON_PIN_P1_E) == 0)
       {
         // ghetto debouncing
         while (gpio_get(BUTTON_PIN_P1_E) == 0)
           ;
-        if (index != -1)
+        handle_start_menu_input(true, -NEUTRAL);
+      }
+      // TODO: Add joystick reads here in the future
+      break;
+    case GAME_PLAYING:
+      adc_select_input(ADC_CHAN0);
+      joystick_x = adc_read();
+
+      adc_select_input(ADC_CHAN1);
+      joystick_y = adc_read();
+
+      // User Selection
+      index = joystickSelect(joystick_x, joystick_y);
+
+      if (gpio_get(BUTTON_PIN_P1_S) == 0)
+      {
+        // ghetto debouncing
+        while (gpio_get(BUTTON_PIN_P1_S) == 0)
+          ;
+        // printf("skip level");
+        skipLevel(&player1, startMenuState.settings.difficultyLevel);
+      }
+      else if (gpio_get(BUTTON_PIN_P1_E) == 0)
+      {
+        // ghetto debouncing
+        while (gpio_get(BUTTON_PIN_P1_E) == 0)
+          ;
+        if (index != NEUTRAL)
         {
           // Handle card selection
           handle_card_select(&player1, true, index);
@@ -120,10 +141,10 @@ static PT_THREAD(protothread_serial(struct pt *pt))
         else
         {
           // Handle card selection
-          handle_card_select(&player1, true, -1);
+          handle_card_select(&player1, true, NEUTRAL);
         }
       }
-      else if (index != -1)
+      else if (index != NEUTRAL)
       {
         handle_card_select(&player1, false, index);
       }
@@ -174,6 +195,96 @@ static PT_THREAD(protothread_anim(struct pt *pt))
 // ==================================================
 // === game controller thread
 // ==================================================
+static PT_THREAD(protothread_serial1(struct pt *pt))
+{
+  PT_BEGIN(pt);
+
+  while (1)
+  {
+    switch (player2.currentState)
+    {
+    case START_MENU:
+      static JoystickDir lastJoystickDir = NEUTRAL;
+      int joystick_x = ads1115_read_single_channel(7);
+      int joystick_y = ads1115_read_single_channel(4);
+
+      sleep_us(400); // Small delay to stabilize joystick readings
+      JoystickDir index = joystickSelect(joystick_x, joystick_y);
+      if (index != NEUTRAL && lastJoystickDir == NEUTRAL)
+      {
+        handle_start_menu_input(false, index);
+      }
+      lastJoystickDir = index;
+
+      // Read button inputs
+      if (gpio_get(BUTTON_PIN_P2_E) == 0)
+      {
+        // ghetto debouncing
+        while (gpio_get(BUTTON_PIN_P2_E) == 0)
+          ;
+        handle_start_menu_input(true, NEUTRAL);
+      }
+      // TODO: Add joystick reads here in the future
+      break;
+    case GAME_PLAYING:
+      joystick_x = ads1115_read_single_channel(7);
+      joystick_y = ads1115_read_single_channel(4);
+
+      // User Selection
+      index = joystickSelect_ads(joystick_x, joystick_y);
+      // f("index: %d\n", index);
+
+      if (gpio_get(BUTTON_PIN_P2_S) == 0)
+      {
+        // ghetto debouncing
+        while (gpio_get(BUTTON_PIN_P2_S) == 0)
+          ;
+        skipLevel(&player2, startMenuState.settings.difficultyLevel);
+      }
+      else if (gpio_get(BUTTON_PIN_P2_E) == 0)
+      {
+        // ghetto debouncing
+        while (gpio_get(BUTTON_PIN_P2_E) == 0)
+          ;
+        if (index != NEUTRAL)
+        {
+          // Handle card selection
+          handle_card_select(&player2, true, index);
+        }
+        else
+        {
+          // Handle card selection
+          handle_card_select(&player2, true, NEUTRAL);
+        }
+      }
+      else if (index != NEUTRAL)
+      {
+        handle_card_select(&player2, false, index);
+      }
+      else if (gpio_get(BUTTON_PIN_P2_R) == 0)
+      {
+        // ghetto debouncing
+        while (gpio_get(BUTTON_PIN_P2_R) == 0)
+          ;
+        resetLevel(&player2);
+      }
+      break;
+    case GAME_OVER:
+      // Read button inputs
+      if (gpio_get(BUTTON_PIN_P2_E) == 0 || gpio_get(BUTTON_PIN_P2_R) == 0)
+      {
+        // ghetto debouncing
+        while (gpio_get(BUTTON_PIN_P2_E) == 0 || gpio_get(BUTTON_PIN_P2_R) == 0)
+          ;
+
+        transitionToState(&player2, START_MENU);
+      }
+      break;
+    }
+    PT_YIELD(pt);
+  } // END WHILE(1)
+  PT_END(pt);
+}
 // Animation on core 1
 static PT_THREAD(protothread_anim1(struct pt *pt))
 {
@@ -208,7 +319,7 @@ void core1_main()
 {
   // Add animation thread
   pt_add_thread(protothread_anim1);
-  // pt_add_thread(protothread_serial1);
+  pt_add_thread(protothread_serial1);
 
   // Start the scheduler
   pt_schedule_start;
@@ -292,12 +403,13 @@ int main()
   // initialize VGA
   initVGA();
 
-  // initialize solutions
+  // // initialize solutions
   sol_init();
+
+  init_eeprom();
 
   // initialize controllers
   initController();
-
   // start core 1
   multicore_reset_core1();
   multicore_launch_core1(&core1_main);
@@ -306,8 +418,10 @@ int main()
   pt_add_thread(protothread_serial);
   pt_add_thread(protothread_anim);
 
-  transitionToState(&player1, START_MENU);
+  menuLock = spin_lock_instance(MENU_LOCK_ID);
+  paramLock = spin_lock_instance(PARAM_LOCK_ID);
 
+  transitionToState(&player1, START_MENU);
   // start scheduler
   pt_schedule_start;
 }

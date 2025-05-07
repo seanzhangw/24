@@ -741,7 +741,7 @@ inline void writeStringBold(char *str)
 }
 
 // 640 * 480
-void pasteImage(const unsigned char *image, int image_height, int image_width, short x, short y)
+void pasteImage(const unsigned char *image, int image_height, int image_width, short x, short y, char bg)
 {
   /* Paste an image at the specified location
    * Parameters:
@@ -760,7 +760,7 @@ void pasteImage(const unsigned char *image, int image_height, int image_width, s
   }
 }
 
-void moveImage(const unsigned char *image, int image_height, int image_width, short x, short y, short new_x, short new_y)
+void moveImage(const unsigned char *image, int image_height, int image_width, short x, short y, short new_x, short new_y, char bg)
 {
   /* Move an image from one location to another
    * Parameters:
@@ -794,49 +794,49 @@ void moveImage(const unsigned char *image, int image_height, int image_width, sh
   // Cardinal directions
   if (new_x > x && new_y == y) // right
   {
-    fillRect(x, y, new_x - x, image_height, BLACK);
+    fillRect(x, y, new_x - x, image_height, bg);
   }
   else if (new_x < x && new_y == y) // left
   {
-    fillRect(new_x + image_width * 2, y, x - new_x, image_height, BLACK);
+    fillRect(new_x + image_width * 2, y, x - new_x, image_height, bg);
   }
   else if (new_x == x && new_y > y) // down
   {
-    fillRect(x, y, image_width * 2, new_y - y, BLACK);
+    fillRect(x, y, image_width * 2, new_y - y, bg);
   }
   else if (new_x == x && new_y < y) // up
   {
-    fillRect(x, new_y + image_height, image_width * 2, y - new_y, BLACK);
+    fillRect(x, new_y + image_height, image_width * 2, y - new_y, bg);
   }
 
   // Diagonal directions
   if (new_x > x && new_y > y) // down and to the right
   {
-    fillRect(x, y, new_x - x, image_height, BLACK);
+    fillRect(x, y, new_x - x, image_height, bg);
     // image_width * 2 is the width of the image in pixels
-    fillRect(x, y, image_width * 2, new_y - y, BLACK);
+    fillRect(x, y, image_width * 2, new_y - y, bg);
   }
   else if (new_x < x && new_y < y) // up and to the left
   {
-    fillRect(x + image_width * 2 - (x - new_x), y, x - new_x, image_height, BLACK);
-    fillRect(x, y + image_height - (y - new_y), image_width * 2, y - new_y, BLACK);
+    fillRect(x + image_width * 2 - (x - new_x), y, x - new_x, image_height, bg);
+    fillRect(x, y + image_height - (y - new_y), image_width * 2, y - new_y, bg);
   }
   else if (new_x < x && new_y > y) // down and to the left
   {
-    fillRect(x, y, image_width * 2, new_y - y, BLACK);
-    fillRect(new_x + image_width * 2, new_y, x - new_x, image_height, BLACK);
+    fillRect(x, y, image_width * 2, new_y - y, bg);
+    fillRect(new_x + image_width * 2, new_y, x - new_x, image_height, bg);
   }
   else if (new_x > x && new_y < y) // up and to the right
   {
-    fillRect(x, y, new_x - x, image_height, BLACK);
-    fillRect(new_x, new_y + image_height, image_width * 2, y - new_y, BLACK);
+    fillRect(x, y, new_x - x, image_height, bg);
+    fillRect(new_x, new_y + image_height, image_width * 2, y - new_y, bg);
   }
   // Paste new image
 
-  pasteImage(image, image_height, image_width, new_x, new_y);
+  pasteImage(image, image_height, image_width, new_x, new_y, bg);
 }
 
-void flipImage(const unsigned char *top_image, int image_height, int image_width, short x, short y, const unsigned char *bottom_image, float progress)
+void flipImage(const unsigned char *top_image, int image_height, int image_width, short x, short y, const unsigned char *bottom_image, float progress, char bg)
 {
   /* Flip an image vertically with a progress factor. Flips by turning to a trapezoid.
    * Parameters:
@@ -876,7 +876,7 @@ void flipImage(const unsigned char *top_image, int image_height, int image_width
     }
     // 2. middle rectangle
     // fillRectCustom(x + x_offset, y, trapezoid_height, image_height, top_image);
-    pasteImage(top_image, image_height, trapezoid_height / 2, x + x_offset, y);
+    pasteImage(top_image, image_height, trapezoid_height / 2, x + x_offset, y, bg);
     // 3. bottom right triangle
     accumulator = trapezoid_height;
     for (int i = 0; i < triangle_base; i++)
@@ -887,9 +887,9 @@ void flipImage(const unsigned char *top_image, int image_height, int image_width
 
     // clear past artifacts
     // clean up left side of the backcard
-    fillRect(x - 4, y - triangle_base, x_offset + 4, image_height + (triangle_base) * 2, BLACK);
+    fillRect(x - 4, y - triangle_base, x_offset + 4, image_height + (triangle_base) * 2, bg);
     // clean up right side of the backcard
-    fillRect(x + x_offset + trapezoid_height, y - triangle_base, image_width * 2 - trapezoid_height, image_height + (triangle_base) * 2, BLACK);
+    fillRect(x + x_offset + trapezoid_height, y - triangle_base, image_width * 2 - trapezoid_height, image_height + (triangle_base) * 2, bg);
   }
   // between 0.5 and 1.0, we are flipping to the left (right side is growing)
   else
@@ -912,12 +912,11 @@ void flipImage(const unsigned char *top_image, int image_height, int image_width
     //   accumulator += triangleStep;
     // }
     // 2. middle rectangle
-    pasteImage(bottom_image, image_height, trapezoid_height / 2, x + x_offset, y);
+    pasteImage(bottom_image, image_height, trapezoid_height / 2, x + x_offset, y, bg);
 
     // 3. bottom triangle
 
     // erase past artifacts
-
-    fillRect(x, y - (((1.25 * image_height) - image_height) / 2), image_width * 2, ((1.25 * image_height) - image_height) / 2 - triangle_base, BLACK);
+    fillRect(x, y - (((1.25 * image_height) - image_height) / 2), image_width * 2, ((1.25 * image_height) - image_height) / 2 - triangle_base, bg);
   }
 }

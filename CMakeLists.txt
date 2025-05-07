@@ -46,13 +46,13 @@ pico_generate_pio_header(VGA_Animation_Demo ${CMAKE_CURRENT_LIST_DIR}/vga_driver
 pico_generate_pio_header(VGA_Animation_Demo ${CMAKE_CURRENT_LIST_DIR}/vga_driver/rgb.pio)
 
 # must match with executable name and source file names
-target_sources(VGA_Animation_Demo PRIVATE main.c game_state.c assets.c array_collection_difficultylevel.c 
-input_handler.c vga_driver/vga16_graphics.c utils/map.c)
+target_sources(VGA_Animation_Demo PRIVATE main.c eeprom.c game_state.c assets.c array_collection_difficultylevel.c input_handler.c vga_driver/vga16_graphics.c utils/map.c)
 
 # must match with executable name
 target_link_libraries(VGA_Animation_Demo PRIVATE pico_stdlib pico_divider pico_multicore 
 pico_bootsel_via_double_reset hardware_pio hardware_dma hardware_adc hardware_irq hardware_clocks 
-hardware_pll hardware_spi)
+hardware_pll hardware_spi hardware_i2c
+ hardware_sync hardware_timer)
 
 if (PICO_CYW43_SUPPORTED)
     target_link_libraries(blink pico_cyw43_arch_none)
