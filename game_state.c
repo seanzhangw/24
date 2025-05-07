@@ -2,6 +2,20 @@
 #include "game_state.h"
 #include "array_collection_difficultylevel.h"
 #include "input_handler.h"
+// from dma-demo.c
+#include <stdio.h>
+#include <math.h>
+#include <stdlib.h>
+#include "pico/stdlib.h"
+#include "hardware/dma.h"
+#include "hardware/spi.h"
+
+// #include "background.h" // none of these can be include, otherwise compile error: multyiple definition
+// #include "bingo.h" 
+// #include "buzzer.h"
+// #include "deal_cards.h"
+// #include "final_victory.h"
+// #include "flip_cards.h"
 
 char operations[4] = {'+', '-', '/', '*'}; // Array of operators
 
@@ -9,6 +23,10 @@ StartMenuState startMenuState = {0, 0, {EASY, 0}}; // Global variable for the st
 
 spin_lock_t *menuLock; // Spinlock for the start menu
 spin_lock_t *paramLock;
+
+extern int data_chan;
+extern unsigned short *DAC_data_deal;
+extern unsigned short *DAC_data_flip;
 
 #define PLAYER1_CARD0_X 110
 #define PLAYER1_CARD0_Y 150
@@ -515,11 +533,14 @@ void handle_start_menu_input(bool enterPressed, int index)
 void slideCards(Player *player)
 {
     bool allCardsSlid = true;
+
     for (int i = 0; i < 4; i++)
     {
         // Check if the card is not already at its destination
         if (player->cards[i].x != player->cards[i].destX || player->cards[i].y != player->cards[i].destY)
-        {
+        {        
+            dma_start_channel_mask(1u << data_chan) ;
+
             int dx = player->cards[i].destX - player->cards[i].x;
             int dy = player->cards[i].destY - player->cards[i].y;
 
@@ -561,9 +582,28 @@ void slideCards(Player *player)
 }
 
 void flipCards(Player *player)
-{
+{   
+    // dma_channel_set_read_addr(data_chan, DAC_data_flip, false);  // 设置新的源地址
+    // // dma_channel_set_trans_count(data_chan, flip_cards_audio_len, false); // 设置新长度
+    // dma_channel_set_trans_count(data_chan, 6880, false); // 设置新长度
+    // // dma_channel_start(data_chan);  // 启动 DMA 传输
+    // // start the control channel
+    // dma_start_channel_mask(1u << data_chan) ;
+    // // debug print
+    // printf("actual DMA channel %d\n", data_chan);
+    // printf("DMA started\n");
+    
     for (int i = 0; i < 4; i++)
     {
+        if (player->cards[0].flipProgress == 0) {
+            dma_channel_set_read_addr(data_chan, DAC_data_flip, false);  // set new source address
+            // dma_channel_set_trans_count(data_chan, flip_cards_audio_len, false); // set new length
+            dma_channel_set_trans_count(data_chan, 6880, false); // set new length ^
+            // dma_channel_start(data_chan); //another function has the same functionality
+            // start the control channel
+            dma_start_channel_mask(1u << data_chan) ;
+        }
+
         if (player->cards[i].flipProgress <= 1.0 + 0.01)
         {
             flipImage((const unsigned char *)backOfCard, IMG_HEIGHT, IMG_WIDTH,
@@ -571,7 +611,7 @@ void flipCards(Player *player)
                       (const unsigned char *)player->cards[i].image, player->cards[i].flipProgress, BACKGROUND);
 
             player->cards[i].flipProgress += 0.1; // Increment the flip progress
-        }
+        }  
     }
 }
 
@@ -736,7 +776,7 @@ void transitionToState(Player *player, GameState newState)
         player1.currentState = START_MENU;
         player2.currentState = START_MENU;
         break;
-    case GAME_PLAYING:
+    case GAME_PLAYING: //!!!
         printf("In Game Playing State\n\r");
         fillRect(0, 0, 640, 480, BACKGROUND);
         drawRoundParams();

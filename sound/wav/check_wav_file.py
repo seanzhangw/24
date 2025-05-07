@@ -1,9 +1,11 @@
 import wave
 
-wav_filename1 = 'buzzer.wav'
+wav_filename1 = 'deal_cards.wav'
 
 def inspect_wav_file(wav_filename):
     with wave.open(wav_filename, 'rb') as wav_file:
+        # Print basic information about the WAV file
+        print(f"File Name: {wav_filename}")
         print(f"Channels: {wav_file.getnchannels()}")
         print(f"Sample Width (bytes): {wav_file.getsampwidth()}")
         print(f"Frame Rate (Hz): {wav_file.getframerate()}")
@@ -27,6 +29,6 @@ with wave.open(wav_filename1, 'rb') as wav_file:
                         for i in range(0, len(frames), 2))
 
 # Print first 100 PCM data values
-print(f"First 100 PCM data values from {wav_filename1}: {pcm_data[:10000]}")
+# print(f"First 100 PCM data values from {wav_filename1}: {pcm_data[:10000]}")
 
 # If needed, adjust the range to print more data

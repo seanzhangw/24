@@ -33,6 +33,7 @@ project(VGA_Animation_Demo C CXX ASM)
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
+# ====================================================================================
 # Add executable. Default name is the project name, version 0.1
 
 add_executable(VGA_Animation_Demo)
@@ -48,7 +49,9 @@ pico_generate_pio_header(VGA_Animation_Demo ${CMAKE_CURRENT_LIST_DIR}/vga_driver
 target_sources(VGA_Animation_Demo PRIVATE main.c eeprom.c game_state.c assets.c array_collection_difficultylevel.c input_handler.c vga_driver/vga16_graphics.c utils/map.c)
 
 # must match with executable name
-target_link_libraries(VGA_Animation_Demo PRIVATE pico_stdlib pico_divider pico_multicore pico_bootsel_via_double_reset hardware_pio hardware_dma hardware_adc hardware_irq hardware_clocks hardware_pll hardware_i2c
+target_link_libraries(VGA_Animation_Demo PRIVATE pico_stdlib pico_divider pico_multicore 
+pico_bootsel_via_double_reset hardware_pio hardware_dma hardware_adc hardware_irq hardware_clocks 
+hardware_pll hardware_spi hardware_i2c
  hardware_sync hardware_timer)
 
 if (PICO_CYW43_SUPPORTED)
@@ -59,3 +62,17 @@ endif()
 pico_add_extra_outputs(VGA_Animation_Demo)
 
 # add url via pico_set_program_url
+
+# ---------- compile dma-demo.c and run it saperately, need to comment out codes above here below "===" ----------
+# # Add a new executable file dma_demo
+# add_executable(dma_demo dma-demo.c)
+
+# # Link necessary libraries
+# target_link_libraries(dma_demo PRIVATE pico_stdlib hardware_dma hardware_spi)
+
+# # Enable standard output
+# pico_enable_stdio_usb(dma_demo 1)
+# pico_enable_stdio_uart(dma_demo 0)
+
+# # Generate additional output files (including .uf2)
+# pico_add_extra_outputs(dma_demo)

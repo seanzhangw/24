@@ -1,4 +1,4 @@
-#pragma once
+#pragma once // pragmatic info
 // Include standard libraries
 #include <stdio.h>
 #include <stdlib.h>
