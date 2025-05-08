@@ -109,7 +109,6 @@ static PT_THREAD(leaderboard_input(struct pt *pt))
     printf("Player 1 name: '%s'\n\r", player_name);
 
     insert_score(player_name, player1.solved, startMenuState.settings.mins - 1);
-    printf("after insert score\n\r");
     // ---------- Player 2 ----------
     sprintf(pt_serial_out_buffer, "Enter Player 2 name (max %d chars): ", NAME_LEN);
     serial_write;
@@ -486,7 +485,7 @@ int main()
 
   // configure the first DMA channel for audio playback: deal_cards
   data_chan = dma_claim_unused_channel(true);
-  printf("DMA channel %d claimed for data_chan\n", data_chan);
+  // printf("DMA channel %d claimed for data_chan\n", data_chan);
   dma_channel_config c = dma_channel_get_default_config(data_chan);
   channel_config_set_transfer_data_size(&c, DMA_SIZE_16);
   channel_config_set_read_increment(&c, true);
@@ -504,7 +503,7 @@ int main()
 
   // configure the second DMA channel for audio playback: click
   data_chan2 = dma_claim_unused_channel(true);
-  printf("DMA channel %d claimed for data_chan2\n", data_chan2);
+  // printf("DMA channel %d claimed for data_chan2\n", data_chan2);
   dma_channel_config c2 = dma_channel_get_default_config(data_chan2);
   channel_config_set_transfer_data_size(&c2, DMA_SIZE_16);
   channel_config_set_read_increment(&c2, true);
@@ -540,7 +539,7 @@ int main()
 
   // configure the fourth DMA channel for audio playback: flip_cards
   data_chan4 = dma_claim_unused_channel(true);
-  printf("DMA channel %d claimed for data_chan4\n", data_chan4);
+  // printf("DMA channel %d claimed for data_chan4\n", data_chan4);
   dma_channel_config c4 = dma_channel_get_default_config(data_chan4);
   channel_config_set_transfer_data_size(&c4, DMA_SIZE_16);
   channel_config_set_read_increment(&c4, true);

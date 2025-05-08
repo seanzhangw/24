@@ -59,7 +59,7 @@ repeating_timer_t timer;
 MenuIcon startMenuIcons[ROWS][COLS] = {
     {{406, 130, WHITE, 4, "EASY"}, {470, 130, WHITE, 6, "MEDIUM"}, {550, 130, WHITE, 4, "HARD"}},
     {{406, 230, WHITE, 5, "60 s"}, {480, 230, WHITE, 5, "120 s"}, {550, 230, WHITE, 5, "180 s"}},
-    {{406, 330, WHITE, 4, "60s"}, {480, 330, WHITE, 4, "120s"}, {550, 330, WHITE, 4, "180s"}},
+    {{406, 330, WHITE, 5, "60 s"}, {480, 330, WHITE, 5, "120 s"}, {550, 330, WHITE, 5, "180 s"}},
 };
 
 EndScreenRow p1EndScreenRows[30] = {0};
@@ -278,13 +278,10 @@ void handle_card_select(Player *player, bool enterPressed, int index)
     // if enter is pressed, that means a number is selected
     if (enterPressed)
     {
-        printf("enter pressed at card selecting\n");
         dma_channel_set_read_addr(data_chan2, DAC_data_click, false); // set new source address
 
         // start the control channel
         dma_start_channel_mask(1u << data_chan2);
-        // debug print
-        printf("DMA channel %d started for click\n", data_chan2);
 
         // check which stage of operation we are on
         switch (player->opStage)
@@ -373,21 +370,17 @@ void handle_card_select(Player *player, bool enterPressed, int index)
             {
             case '+':
                 player->nums[index] = player->num1 + player->num2; // add the two numbers
-                printf("%f\n", player->nums[index]);
                 break;
             case '-':
                 player->nums[index] = player->num1 - player->num2; // subtract the two numbers
-                printf("%f\n", player->nums[index]);
                 break;
             case '*':
                 player->nums[index] = player->num1 * player->num2; // multiply the two numbers
-                printf("%f\n", player->nums[index]);
                 break;
             case '/':
                 if (player->num2 != 0)
                 {
                     player->nums[index] = player->num1 / player->num2; // divide the two numbers
-                    printf("%f\n", player->nums[index]);
                 }
                 else
                 {
@@ -504,13 +497,11 @@ void handle_start_menu_input(bool enterPressed, int index)
 {
     if (enterPressed)
     {
-        printf("enter pressed at start menu\n");
         dma_channel_set_read_addr(data_chan2, DAC_data_click, false); // set new source address
 
         // start the control channel
         dma_start_channel_mask(1u << data_chan2);
         // debug print
-        printf("DMA channel %d started for click\n", data_chan2);
 
         if (startMenuState.curRow == 0)
         {
@@ -603,7 +594,7 @@ void slideCards(Player *player)
             // start the control channel
             dma_start_channel_mask(1u << data_chan);
             // debug print
-            printf("DMA channel %d started for deal\n", data_chan);
+            // printf("DMA channel %d started for deal\n", data_chan);
 
             int dx = player->cards[i].destX - player->cards[i].x;
             int dy = player->cards[i].destY - player->cards[i].y;
@@ -657,7 +648,7 @@ void flipCards(Player *player)
             // start the control channel
             dma_start_channel_mask(1u << data_chan4);
             // debug print
-            printf("DMA channel %d started for flip\n", data_chan4);
+            // printf("DMA channel %d started for flip\n", data_chan4);
         }
 
         if (player->cards[i].flipProgress <= 1.0 + 0.01)
@@ -745,12 +736,7 @@ void drawLeaderboard_60s()
         eeprom_read_name(addr, name);
         name[NAME_LEN] = '\0';
         uint16_t score = eeprom_read_uint16(addr + NAME_LEN);
-        printf("ROW %d @ 0x%04X: name='", row, addr);
-        for (int i = 0; i < NAME_LEN; i++)
-        {
-            printf("%c", name[i]);
-        }
-        printf(" score: %u\n", score);
+        printf("Name: %s, Score: %d\n", name, score);
 
         // Draw entry background stripe
         fillRect(60, y, 520, 30, (row % 2 == 0) ? DARK_BLUE : DARK_GREEN);
@@ -768,29 +754,6 @@ void drawLeaderboard_60s()
         }
         writeStringBig(buffer);
     }
-
-    // int score1 = solved1 * difficulty1;
-    // int score2 = solved2 * difficulty2;
-
-    // char buffer1[30];
-    // char buffer2[30];
-    // sprintf(buffer1, "Player 1 Score: %d", score1);
-    // sprintf(buffer2, "Player 2 Score: %d", score2);
-
-    // setTextColorBig(WHITE, BACKGROUND);
-
-    // // player 1
-    // setCursor(100, 220);
-    // writeStringBig(buffer1);
-
-    // // plyer 2
-    // setCursor(360, 220);  // roughly 640 - 100 - string width
-    // writeStringBig(buffer2);
-
-    // // instructions
-    // setCursor(220, 280);  // adjust vertically if needed
-    // setTextColorBig(RED, BACKGROUND);
-    // writeStringBig("Press Enter to Exit");
 
     // Exit text
     setCursor(250, 440);
@@ -1107,7 +1070,7 @@ void drawGameOver()
     setTextColorBig(WHITE, BLUE);
     char buffer1[32];
     int score1 = player1.solved * (startMenuState.settings.difficultyLevel + 1);
-    sprintf(buffer1, "Player 1");
+    sprintf(buffer1, "Player 1:");
     writeStringBig(buffer1);
     setCursor(80, 190);
     sprintf(buffer1, "Score: %d", score1);
@@ -1120,7 +1083,7 @@ void drawGameOver()
     setTextColorBig(WHITE, RED);
     char buffer2[32];
     int score2 = player2.solved * (startMenuState.settings.difficultyLevel + 1);
-    sprintf(buffer2, "Player 2");
+    sprintf(buffer2, "Player 2:");
     writeStringBig(buffer2);
     setCursor(360, 190);
     sprintf(buffer2, "Score: %d", score2);
@@ -1137,35 +1100,6 @@ void drawGameOver()
     player1.solved = 0;
     player2.solved = 0;
 }
-
-// void drawGameOver()
-// {
-//     fillRect(0, 0, 640, 480, BACKGROUND);
-//     setCursor(230, 340);
-//     setTextColorBig(RED, BACKGROUND);
-//     writeStringBig("Press Enter to Add Score");
-//     setCursor(200, 440);
-//     setTextColorBig(RED, BACKGROUND);
-//     writeStringBig("Press Reset to Return to Start");
-
-//     int score1 = player1.solved * startMenuState.settings.difficultyLevel;
-//     int score2 = player2.solved * startMenuState.settings.difficultyLevel;
-
-//     char buffer1[30];
-//     char buffer2[30];
-//     sprintf(buffer1, "Player 1 Score: %d", score1);
-//     sprintf(buffer2, "Player 2 Score: %d", score2);
-
-//     setTextColorBig(WHITE, BACKGROUND);
-
-//     // player 1
-//     setCursor(100, 220);
-//     writeStringBig(buffer1);
-
-//     // plyer 2
-//     setCursor(380, 220); // roughly 640 - 100 - string width
-//     writeStringBig(buffer2);
-// }
 
 void transitionToState(Player *player, GameState newState)
 {
@@ -1202,7 +1136,7 @@ void transitionToState(Player *player, GameState newState)
         drawLeaderboard_180s();
         break;
     case GAME_PLAYING: //!!!
-        printf("In Game Playing State\n\r");
+        // printf("In Game Playing State\n\r");
         fillRect(0, 0, 640, 480, BACKGROUND);
         drawRoundParams();
         // import start menu settings

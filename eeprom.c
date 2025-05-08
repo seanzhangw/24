@@ -7,7 +7,7 @@
 
 void init_eeprom()
 {
-    printf("Initializing EEPROM...\n");
+    // printf("Initializing EEPROM...\n");
     i2c_init(EEPROM_I2C, 100 * 1000); // 100kHz
     gpio_set_function(EEPROM_SDA_PIN, GPIO_FUNC_I2C);
     gpio_set_function(EEPROM_SCL_PIN, GPIO_FUNC_I2C);
@@ -21,9 +21,7 @@ void eeprom_write_byte(uint16_t mem_addr, uint8_t data)
     buffer[0] = (mem_addr >> 8) & 0xFF; // High byte
     buffer[1] = mem_addr & 0xFF;        // Low byte
     buffer[2] = data;
-    // printf("Writing: 0x%02X to address 0x%04X\n", data, mem_addr);
     i2c_write_blocking(EEPROM_I2C, EEPROM_ADDR, buffer, 3, false);
-    // printf("Write complete\n");
     sleep_ms(10); // Wait for EEPROM to complete write operation
 }
 
@@ -70,7 +68,6 @@ void eeprom_read_name(uint16_t addr, char *out)
     for (int i = 0; i < NAME_LEN; i++)
     {
         out[i] = eeprom_read_byte(addr + i);
-        printf("Name byte %d: 0x%02X\n", i, out[i]);
     }
     out[NAME_LEN] = '\0';
 }
