@@ -27,6 +27,8 @@ spin_lock_t *paramLock;
 
 extern int data_chan;
 extern int data_chan2;
+extern int data_chan3;
+extern int data_chan4;
 extern unsigned short *DAC_data_background;
 extern unsigned short *DAC_data_click;
 extern unsigned short *DAC_data_deal;
@@ -277,13 +279,10 @@ void handle_card_select(Player *player, bool enterPressed, int index)
     if (enterPressed)
     {
         printf("enter pressed at card selecting\n");
-        // play click audio
         dma_channel_set_read_addr(data_chan2, DAC_data_click, false); // set new source address
-        // dma_channel_set_trans_count(data_chan2, flip_cards_audio_len, false); // set new length
-        // dma_channel_set_trans_count(data_chan2, 11378, false); // hardcoded length
+
         // start the control channel
         dma_start_channel_mask(1u << data_chan2);
-        // sleep_ms(1000);
         // debug print
         printf("DMA channel %d started for click\n", data_chan2);
 
@@ -435,7 +434,7 @@ void handle_card_select(Player *player, bool enterPressed, int index)
                         return;
                     }
                 }
-                player->solved += startMenuState.settings.difficultyLevel + 1; // add the score based on the difficulty level
+                player->solved += 1; // add the score based on the difficulty level
 
                 EndScreenRow *row = (player->playerNum == 1) ? &p1EndScreenRows[p1EndScreenRowCount] : &p2EndScreenRows[p2EndScreenRowCount];
                 for (int i = 0; i < 4; i++)
@@ -506,13 +505,10 @@ void handle_start_menu_input(bool enterPressed, int index)
     if (enterPressed)
     {
         printf("enter pressed at start menu\n");
-        // play click audio
         dma_channel_set_read_addr(data_chan2, DAC_data_click, false); // set new source address
-        // dma_channel_set_trans_count(data_chan2, flip_cards_audio_len, false); // set new length
-        // dma_channel_set_trans_count(data_chan2, 11378, false); // hardcoded length
+
         // start the control channel
         dma_start_channel_mask(1u << data_chan2);
-        // sleep_ms(1000);
         // debug print
         printf("DMA channel %d started for click\n", data_chan2);
 
@@ -604,8 +600,6 @@ void slideCards(Player *player)
         // Check if the card is not already at its destination
         if (player->cards[i].x != player->cards[i].destX || player->cards[i].y != player->cards[i].destY)
         {
-            // dma_channel_set_read_addr(data_chan, DAC_data_deal, false); // set new source address
-            // dma_channel_set_trans_count(data_chan, 7674, false); // hardcode length
             // start the control channel
             dma_start_channel_mask(1u << data_chan);
             // debug print
@@ -648,11 +642,8 @@ void slideCards(Player *player)
         {
             gameFlags.player2CardsSlid = true;
         }
-        dma_channel_set_read_addr(data_chan, DAC_data_flip, false); // set new source address
-        // dma_channel_set_trans_count(data_chan, flip_cards_audio_len, false); // set new length
-        dma_channel_set_trans_count(data_chan, 6880, false); // set new length ^
-        // dma_channel_start(data_chan); //another function has the same functionality
-        // start the control channel
+        // dma_channel_set_read_addr(data_chan, DAC_data_flip, false); // set new source address
+        // dma_channel_set_trans_count(data_chan, 6880, false); // set new length ^
     }
 }
 
@@ -663,12 +654,10 @@ void flipCards(Player *player)
     {
         if (player->cards[0].flipProgress == 0)
         {
-            dma_channel_set_read_addr(data_chan, DAC_data_flip, false); // set new source address
-            dma_channel_set_trans_count(data_chan, 6880, false);        // hardcoded length
             // start the control channel
-            dma_start_channel_mask(1u << data_chan);
+            dma_start_channel_mask(1u << data_chan4);
             // debug print
-            printf("DMA channel %d started for flip\n", data_chan);
+            printf("DMA channel %d started for flip\n", data_chan4);
         }
 
         if (player->cards[i].flipProgress <= 1.0 + 0.01)
@@ -779,6 +768,29 @@ void drawLeaderboard_60s()
         }
         writeStringBig(buffer);
     }
+
+    // int score1 = solved1 * difficulty1;
+    // int score2 = solved2 * difficulty2;
+
+    // char buffer1[30];
+    // char buffer2[30];
+    // sprintf(buffer1, "Player 1 Score: %d", score1);
+    // sprintf(buffer2, "Player 2 Score: %d", score2);
+
+    // setTextColorBig(WHITE, BACKGROUND);
+
+    // // player 1
+    // setCursor(100, 220);
+    // writeStringBig(buffer1);
+
+    // // plyer 2
+    // setCursor(360, 220);  // roughly 640 - 100 - string width
+    // writeStringBig(buffer2);
+
+    // // instructions
+    // setCursor(220, 280);  // adjust vertically if needed
+    // setTextColorBig(RED, BACKGROUND);
+    // writeStringBig("Press Enter to Exit");
 
     // Exit text
     setCursor(250, 440);
@@ -1046,7 +1058,9 @@ void updateParams(Player *player)
 bool timer_callback(repeating_timer_t *rt)
 {
     if (gameFlags.secondsLeft > 0)
-        gameFlags.secondsLeft--;
+        // gameFlags.secondsLeft--;
+        // for testing purposes, decrease the time by 10 seconds
+        gameFlags.secondsLeft = gameFlags.secondsLeft - 10;
     else
         return false; // Stop timer when timeLeft reaches 0
     return true;
@@ -1078,6 +1092,83 @@ void prepGameOverScreen()
     }
 }
 
+void drawGameOver()
+{
+    fillRect(0, 0, 640, 480, BACKGROUND);
+
+    // Title banner
+    fillRect(120, 40, 400, 60, CYAN);
+    setTextColorBig(YELLOW, CYAN);
+    setCursor(275, 60);
+    writeStringBig("GAME OVER!");
+
+    // Player 1 Score Box
+    fillRect(60, 140, 240, 100, BLUE);
+    drawRect(60, 140, 240, 100, WHITE); // border
+    setCursor(80, 160);
+    setTextColorBig(WHITE, BLUE);
+    char buffer1[32];
+    int score1 = player1.solved * (startMenuState.settings.difficultyLevel + 1);
+    sprintf(buffer1, "Player 1");
+    writeStringBig(buffer1);
+    setCursor(80, 190);
+    sprintf(buffer1, "Score: %d", score1);
+    writeStringBig(buffer1);
+
+    // Player 2 Score Box
+    fillRect(340, 140, 240, 100, RED);
+    drawRect(340, 140, 240, 100, WHITE); // border
+    setCursor(360, 160);
+    setTextColorBig(WHITE, RED);
+    char buffer2[32];
+    int score2 = player2.solved * (startMenuState.settings.difficultyLevel + 1);
+    sprintf(buffer2, "Player 2");
+    writeStringBig(buffer2);
+    setCursor(360, 190);
+    sprintf(buffer2, "Score: %d", score2);
+    writeStringBig(buffer2);
+
+    // Instructions
+    setTextColorBig(RED, BACKGROUND);
+    setCursor(220, 300);
+    writeStringBig("Press ENTER to Save Scores");
+
+    setCursor(210, 350);
+    writeStringBig("Press RESET to Return to Menu");
+
+    player1.solved = 0;
+    player2.solved = 0;
+}
+
+// void drawGameOver()
+// {
+//     fillRect(0, 0, 640, 480, BACKGROUND);
+//     setCursor(230, 340);
+//     setTextColorBig(RED, BACKGROUND);
+//     writeStringBig("Press Enter to Add Score");
+//     setCursor(200, 440);
+//     setTextColorBig(RED, BACKGROUND);
+//     writeStringBig("Press Reset to Return to Start");
+
+//     int score1 = player1.solved * startMenuState.settings.difficultyLevel;
+//     int score2 = player2.solved * startMenuState.settings.difficultyLevel;
+
+//     char buffer1[30];
+//     char buffer2[30];
+//     sprintf(buffer1, "Player 1 Score: %d", score1);
+//     sprintf(buffer2, "Player 2 Score: %d", score2);
+
+//     setTextColorBig(WHITE, BACKGROUND);
+
+//     // player 1
+//     setCursor(100, 220);
+//     writeStringBig(buffer1);
+
+//     // plyer 2
+//     setCursor(380, 220); // roughly 640 - 100 - string width
+//     writeStringBig(buffer2);
+// }
+
 void transitionToState(Player *player, GameState newState)
 {
     stateTransition = true; // Set the state transition flag
@@ -1086,6 +1177,9 @@ void transitionToState(Player *player, GameState newState)
     case START_MENU:
         // Clear the screen
         fillRect(0, 0, 640, 480, BACKGROUND);
+        dma_channel_set_read_addr(data_chan, DAC_data_deal, false);  // set new source address
+        dma_channel_set_read_addr(data_chan4, DAC_data_flip, false); // set new source address
+
         prepNewRound();
         drawStartMenu();
         player1.currentState = START_MENU;
@@ -1126,17 +1220,16 @@ void transitionToState(Player *player, GameState newState)
         break;
     case GAME_OVER:
         // Clear the screen and display "Game Over!"
-        fillRect(0, 0, 640, 480, BACKGROUND);
-        setCursor(250, 340);
-        setTextColorBig(RED, BACKGROUND);
-        writeStringBig("Press Enter to Add Score");
-        setCursor(250, 440);
-        setTextColorBig(RED, BACKGROUND);
-        writeStringBig("Press Reset to Return to Start");
+        drawGameOver();
         // prepGameOverScreen();
         player1.currentState = GAME_OVER;
         player2.currentState = GAME_OVER;
-
+        // generate background music
+        // dma_start_channel_mask(1u << data_chan3);
+        // dma_channel_set_read_addr(data_chan3, DAC_data_background, false); // set new source address
+        // debug print
+        // printf("DMA channel %d started for background\n", data_chan3);
+        // serialInput(player1.score, player2.score, startMenuState.settings.mins - 1);
         break;
     }
     // Reset the state transition flag

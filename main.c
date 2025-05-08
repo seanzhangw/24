@@ -73,6 +73,8 @@
 
 int data_chan = 666;
 int data_chan2 = 777;
+int data_chan3 = 888;
+int data_chan4 = 999;
 const unsigned short *DAC_data_background = NULL;
 const unsigned short *DAC_data_click = NULL;
 const unsigned short *DAC_data_deal = NULL;
@@ -257,6 +259,7 @@ static PT_THREAD(protothread_serial(struct pt *pt))
         while (gpio_get(BUTTON_PIN_P1_R) == 0)
           ;
         transitionToState(&player1, START_MENU);
+        // dma_channel_abort(data_chan3);
       }
       break;
     }
@@ -481,16 +484,7 @@ int main()
   DAC_data_deal = deal_cards_audio; // 7674
   DAC_data_flip = flip_cards_audio; // 6880
 
-  // DAC_data_background = (unsigned short *)malloc(background_audio_len * sizeof(unsigned short));
-  // if (!DAC_data_background) {
-  //     printf("DAC_data3 malloc failed!\n");
-  // }
-
-  // for (uint32_t i = 0; i < background_audio_len; ++i) {
-  //     DAC_data_background[i] = DAC_config_chan_A | (background_audio[i] & 0x0fff);
-  // }
-
-  // configure the first DMA channel for audio playback
+  // configure the first DMA channel for audio playback: deal_cards
   data_chan = dma_claim_unused_channel(true);
   printf("DMA channel %d claimed for data_chan\n", data_chan);
   dma_channel_config c = dma_channel_get_default_config(data_chan);
@@ -508,7 +502,7 @@ int main()
       false                 // DO NOT Start immediately
   );
 
-  // configure the second DMA channel for audio playback
+  // configure the second DMA channel for audio playback: click
   data_chan2 = dma_claim_unused_channel(true);
   printf("DMA channel %d claimed for data_chan2\n", data_chan2);
   dma_channel_config c2 = dma_channel_get_default_config(data_chan2);
@@ -524,6 +518,42 @@ int main()
       DAC_data_click,  // DAC_data
       click_audio_len, // sample_count
       false            // DO NOT Start immediately
+  );
+
+  // // configure the third DMA channel for audio playback: background
+  // data_chan3 = dma_claim_unused_channel(true);
+  // printf("DMA channel %d claimed for data_chan3\n", data_chan3);
+  // dma_channel_config c3 = dma_channel_get_default_config(data_chan3);
+  // channel_config_set_transfer_data_size(&c3, DMA_SIZE_16);
+  // channel_config_set_read_increment(&c3, true);
+  // channel_config_set_write_increment(&c3, false);
+  // dma_timer_set_fraction(0, 0x0006, 0xffff); // ~11.025 kHz
+  // channel_config_set_dreq(&c3, 0x3b);        // Timer 0 pacing
+
+  // dma_channel_configure(
+  //     data_chan3, &c3,
+  //     &spi_get_hw(SPI_PORT)->dr,
+  //     DAC_data_background,  // DAC_data
+  //     background_audio_len, // sample_count
+  //     false                 // DO NOT Start immediately
+  // );
+
+  // configure the fourth DMA channel for audio playback: flip_cards
+  data_chan4 = dma_claim_unused_channel(true);
+  printf("DMA channel %d claimed for data_chan4\n", data_chan4);
+  dma_channel_config c4 = dma_channel_get_default_config(data_chan4);
+  channel_config_set_transfer_data_size(&c4, DMA_SIZE_16);
+  channel_config_set_read_increment(&c4, true);
+  channel_config_set_write_increment(&c4, false);
+  dma_timer_set_fraction(0, 0x0006, 0xffff); // ~11.025 kHz
+  channel_config_set_dreq(&c4, 0x3b);        // Timer 0 pacing
+
+  dma_channel_configure(
+      data_chan4, &c4,
+      &spi_get_hw(SPI_PORT)->dr,
+      DAC_data_flip,        // DAC_data
+      flip_cards_audio_len, // sample_count
+      false                 // DO NOT Start immediately
   );
 
   // initialize solutions
