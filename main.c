@@ -86,6 +86,7 @@ static PT_THREAD(protothread_serial(struct pt *pt))
   PT_BEGIN(pt);
   while (1)
   {
+    // printf("player state: %d\n\r", player1.currentState);
     switch (player1.currentState)
     {
     case START_MENU:
@@ -113,6 +114,33 @@ static PT_THREAD(protothread_serial(struct pt *pt))
       }
       // TODO: Add joystick reads here in the future
       break;
+    case oneMin:
+      if (gpio_get(BUTTON_PIN_P1_E) == 0)
+      {
+        while (gpio_get(BUTTON_PIN_P1_E) == 0)
+        ;
+        transitionToState(&player1, START_MENU);
+        transitionToState(&player2, START_MENU);
+      }
+      break;
+    case twoMin:
+      if (gpio_get(BUTTON_PIN_P1_E) == 0)
+      {
+        while (gpio_get(BUTTON_PIN_P1_E) == 0)
+        ;
+        transitionToState(&player1, START_MENU);
+        transitionToState(&player2, START_MENU);
+      }
+      break;
+    case threeMin:
+      if (gpio_get(BUTTON_PIN_P1_E) == 0)
+      {
+        while (gpio_get(BUTTON_PIN_P1_E) == 0)
+        ;
+        transitionToState(&player1, START_MENU);
+        transitionToState(&player2, START_MENU);
+      }
+    break;
     case GAME_PLAYING:
       adc_select_input(ADC_CHAN0);
       joystick_x = adc_read();
@@ -161,6 +189,7 @@ static PT_THREAD(protothread_serial(struct pt *pt))
       break;
     case GAME_OVER:
       // Read button inputs
+      // printf("start menu time: %d min\n", startMenuState.settings.mins);
       if (gpio_get(BUTTON_PIN_P1_E) == 0 || gpio_get(BUTTON_PIN_P1_R) == 0)
       {
         // ghetto debouncing
@@ -229,6 +258,35 @@ static PT_THREAD(protothread_serial1(struct pt *pt))
       }
       // TODO: Add joystick reads here in the future
       break;
+
+      case oneMin:
+      if (gpio_get(BUTTON_PIN_P2_E) == 0)
+      {
+        while (gpio_get(BUTTON_PIN_P2_E) == 0)
+        ;
+        transitionToState(&player1, START_MENU);
+        transitionToState(&player2, START_MENU);
+      }
+      break;
+    case twoMin:
+      if (gpio_get(BUTTON_PIN_P2_E) == 0)
+      {
+        while (gpio_get(BUTTON_PIN_P2_E) == 0)
+        ;
+        transitionToState(&player1, START_MENU);
+        transitionToState(&player2, START_MENU);
+      }
+      break;
+    case threeMin:
+      if (gpio_get(BUTTON_PIN_P2_E) == 0)
+      {
+        while (gpio_get(BUTTON_PIN_P2_E) == 0)
+        ;
+        transitionToState(&player1, START_MENU);
+        transitionToState(&player2, START_MENU);
+      }
+    break;
+    break;
     case GAME_PLAYING:
       joystick_x = ads1115_read_single_channel(7);
       joystick_y = ads1115_read_single_channel(4);
@@ -274,6 +332,7 @@ static PT_THREAD(protothread_serial1(struct pt *pt))
       break;
     case GAME_OVER:
       // Read button inputs
+      // printf("start menu time: %d min\n", startMenuState.settings.mins);
       if (gpio_get(BUTTON_PIN_P2_E) == 0 || gpio_get(BUTTON_PIN_P2_R) == 0)
       {
         // ghetto debouncing
@@ -406,6 +465,7 @@ int main()
 
   // initialize controllers
   initController();
+  
   // start core 1
   multicore_reset_core1();
   multicore_launch_core1(&core1_main);
@@ -418,6 +478,7 @@ int main()
   paramLock = spin_lock_instance(PARAM_LOCK_ID);
 
   transitionToState(&player1, START_MENU);
+
   // start scheduler
   pt_schedule_start;
 }
