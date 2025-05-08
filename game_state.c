@@ -25,7 +25,9 @@ spin_lock_t *menuLock; // Spinlock for the start menu
 spin_lock_t *paramLock;
 
 extern int data_chan;
+extern int data_chan2;
 extern unsigned short *DAC_data_background;
+extern unsigned short *DAC_data_click;
 extern unsigned short *DAC_data_deal;
 extern unsigned short *DAC_data_flip;
 
@@ -264,6 +266,17 @@ void handle_card_select(Player *player, bool enterPressed, int index)
     // if enter is pressed, that means a number is selected
     if (enterPressed)
     {
+        printf("enter pressed at card selecting\n");
+        // play click audio
+        dma_channel_set_read_addr(data_chan2, DAC_data_click, false); // set new source address
+        // dma_channel_set_trans_count(data_chan2, flip_cards_audio_len, false); // set new length
+        // dma_channel_set_trans_count(data_chan2, 11378, false); // hardcoded length
+        // start the control channel
+        dma_start_channel_mask(1u << data_chan2);
+        // sleep_ms(1000);
+        // debug print
+        printf("DMA channel %d started for click\n", data_chan2);
+
         // check which stage of operation we are on
         switch (player->opStage)
         {
@@ -472,6 +485,17 @@ void handle_start_menu_input(bool enterPressed, int index)
 {
     if (enterPressed)
     {
+        printf("enter pressed at start menu\n");
+        // play click audio
+        dma_channel_set_read_addr(data_chan2, DAC_data_click, false); // set new source address
+        // dma_channel_set_trans_count(data_chan2, flip_cards_audio_len, false); // set new length
+        // dma_channel_set_trans_count(data_chan2, 11378, false); // hardcoded length
+        // start the control channel
+        dma_start_channel_mask(1u << data_chan2);
+        // sleep_ms(1000);
+        // debug print
+        printf("DMA channel %d started for click\n", data_chan2);
+
         if (startMenuState.curRow == 0)
         {
             MenuIcon icon = startMenuIcons[startMenuState.curRow][startMenuState.settings.difficultyLevel];
@@ -540,6 +564,9 @@ void slideCards(Player *player)
         // Check if the card is not already at its destination
         if (player->cards[i].x != player->cards[i].destX || player->cards[i].y != player->cards[i].destY)
         {
+            // dma_channel_set_read_addr(data_chan, DAC_data_deal, false); // set new source address
+            // dma_channel_set_trans_count(data_chan, 7674, false); // hardcode length
+            // start the control channel
             dma_start_channel_mask(1u << data_chan);
             // debug print
             printf("DMA channel %d started for deal\n", data_chan);
@@ -592,13 +619,9 @@ void flipCards(Player *player)
         if (player->cards[0].flipProgress == 0)
         {
             dma_channel_set_read_addr(data_chan, DAC_data_flip, false); // set new source address
-            // dma_channel_set_trans_count(data_chan, flip_cards_audio_len, false); // set new length
-            dma_channel_set_trans_count(data_chan, 6880, false); // hardcoded length
-
+            dma_channel_set_trans_count(data_chan, 6880, false);        // hardcoded length
             // start the control channel
             dma_start_channel_mask(1u << data_chan);
-            // dma_channel_start(data_chan); //another function has similar functionality
-
             // debug print
             printf("DMA channel %d started for flip\n", data_chan);
         }

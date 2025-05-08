@@ -50,6 +50,7 @@
 #include "background.h"
 // #include "bingo.h"
 // #include "buzzer.h"
+#include "click.h"
 #include "deal_cards.h" // should move into main.c
 // #include "final_victory.h"
 #include "flip_cards.h"
@@ -71,7 +72,9 @@
 #define DAC_config_chan_A 0b0011000000000000
 
 int data_chan = 666;
+int data_chan2 = 777;
 const unsigned short *DAC_data_background = NULL;
+const unsigned short *DAC_data_click = NULL;
 const unsigned short *DAC_data_deal = NULL;
 const unsigned short *DAC_data_flip = NULL;
 
@@ -334,6 +337,9 @@ int main()
   // initialize stdio
   stdio_init_all();
 
+  // initialize VGA
+  initVGA();
+
   // SPI setup (do once)
   spi_init(SPI_PORT, 20000000);
   spi_set_format(SPI_PORT, 16, 0, 0, 0);
@@ -342,12 +348,11 @@ int main()
   gpio_set_function(PIN_SCK, GPIO_FUNC_SPI);
   gpio_set_function(PIN_MOSI, GPIO_FUNC_SPI);
 
-  // Prepare wrapped audio, changed into loop? x
-  // static unsigned short *DAC_data[MAX_AUDIO_FILES] = {NULL};
-  DAC_data_background = background_audio; // 
-  DAC_data_deal = deal_cards_audio;
+  // Prepare wrapped audio, changed into loop? X
+  // DAC_data_background = background_audio; //
+  DAC_data_click = click_audio;     // 11378
+  DAC_data_deal = deal_cards_audio; // 7674
   DAC_data_flip = flip_cards_audio; // 6880
-
 
   // DAC_data_background = (unsigned short *)malloc(background_audio_len * sizeof(unsigned short));
   // if (!DAC_data_background) {
@@ -358,8 +363,9 @@ int main()
   //     DAC_data_background[i] = DAC_config_chan_A | (background_audio[i] & 0x0fff);
   // }
 
+  // configure the first DMA channel for audio playback
   data_chan = dma_claim_unused_channel(true);
-  printf("DMA channel %d claimed\n", data_chan);
+  printf("DMA channel %d claimed for data_chan\n", data_chan);
   dma_channel_config c = dma_channel_get_default_config(data_chan);
   channel_config_set_transfer_data_size(&c, DMA_SIZE_16);
   channel_config_set_read_increment(&c, true);
@@ -375,18 +381,25 @@ int main()
       false                 // DO NOT Start immediately
   );
 
-  // dma_channel_configure(
-  //     data_chan, &c,
-  //     &spi_get_hw(SPI_PORT)->dr,
-  //     DAC_data_background, //DAC_data
-  //     background_audio_len, //sample_count
-  //     false // DO NOT Start immediately
-  // );
+  // configure the second DMA channel for audio playback
+  data_chan2 = dma_claim_unused_channel(true);
+  printf("DMA channel %d claimed for data_chan2\n", data_chan2);
+  dma_channel_config c2 = dma_channel_get_default_config(data_chan2);
+  channel_config_set_transfer_data_size(&c2, DMA_SIZE_16);
+  channel_config_set_read_increment(&c2, true);
+  channel_config_set_write_increment(&c2, false);
+  dma_timer_set_fraction(0, 0x0006, 0xffff); // ~11.025 kHz
+  channel_config_set_dreq(&c2, 0x3b);        // Timer 0 pacing
 
-  // initialize VGA
-  initVGA();
+  dma_channel_configure(
+      data_chan2, &c2,
+      &spi_get_hw(SPI_PORT)->dr,
+      DAC_data_click,  // DAC_data
+      click_audio_len, // sample_count
+      false            // DO NOT Start immediately
+  );
 
-  // // initialize solutions
+  // initialize solutions
   sol_init();
 
   init_eeprom();
