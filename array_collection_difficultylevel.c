@@ -9,7 +9,7 @@
 
 #define MAX_SIZE 100
 
-int arrSol[MAX_SIZE][5];
+int arrSol[MAX_SIZE][6];
 
 double calc(int i, double num, double num2);
 double calc2(int op, int op2, int op3, int arr[], int var);
@@ -168,7 +168,7 @@ double calc2(int op, int op2, int op3, int arr[], int var)
     return returnVal;
 }
 
-int (*array_solutions(int size))[5]
+int (*array_solutions(int size))[6]
 {
     if (size > MAX_SIZE)
         return NULL;
@@ -199,6 +199,7 @@ int (*array_solutions(int size))[5]
             else
                 arrSol[count][4] = 1; // medium
 
+            arrSol[count][5] = num_solutions; // number of solutions
             count++;
         }
     }

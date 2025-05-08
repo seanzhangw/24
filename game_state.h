@@ -57,6 +57,7 @@ typedef struct
 
 #define MENU_LOCK_ID 0
 #define PARAM_LOCK_ID 1
+#define START_MENU_LOCK_ID 2
 
 extern spin_lock_t *menuLock;
 extern spin_lock_t *paramLock; // Spinlock for the start menu
@@ -72,8 +73,10 @@ typedef struct
     bool player1Win;
     bool player2Win;
     volatile int secondsLeft;
+    bool savedScores;
 } GameFlags;
 
+extern GameFlags gameFlags; // Shared flags for both players
 // Define the game states
 typedef enum
 {
@@ -82,7 +85,7 @@ typedef enum
     twoMin,
     threeMin,
     GAME_PLAYING,
-    GAME_OVER
+    GAME_OVER,
 } GameState;
 /* ------------------------ END: Game State --------------------------------*/
 
@@ -133,10 +136,11 @@ typedef enum
 typedef struct
 {
     GameState currentState;
-    float nums[4]; // Array to hold the numbers
-    Card cards[4]; // Array to hold the cards
+    float nums[4];    // Array to hold the numbers
+    Card cards[4];    // Array to hold the cards
+    int numSolutions; // Number of solutions in the current card set
     Operator operator;
-    int score;
+    int solved;
     float num1;
     float num2;
     Stage opStage; // Where each player is when performing operation
@@ -146,6 +150,23 @@ typedef struct
 extern Player player1; // Player 1
 extern Player player2; // Player 2
 /* ------------------------ END: Player State --------------------------------*/
+
+/* ------------------------ BEGIN: End Screen --------------------------------*/
+
+typedef struct
+{
+    Card cards[4]; // Array to hold the cards
+    int numSolutions;
+    float progress;
+} EndScreenRow;
+
+extern EndScreenRow p1EndScreenRows[30];
+extern EndScreenRow p2EndScreenRows[30];
+
+extern int p1EndScreenRowCount;
+extern int p2EndScreenRowCount;
+
+/* ------------------------- END: ENd Screen ---------------------------------*/
 
 extern char operations[];
 

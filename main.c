@@ -75,6 +75,57 @@ const unsigned short *DAC_data_background = NULL;
 const unsigned short *DAC_data_deal = NULL;
 const unsigned short *DAC_data_flip = NULL;
 
+static struct pt_sem leaderboard_semaphore;
+
+static PT_THREAD(leaderboard_input(struct pt *pt))
+{
+  PT_BEGIN(pt);
+
+  static char player_name[NAME_LEN + 1]; // Reused for both players
+
+  while (1)
+  {
+    PT_SEM_WAIT(pt, &leaderboard_semaphore);
+
+    // ---------- Player 1 ----------
+    sprintf(pt_serial_out_buffer, "Enter Player 1 name (max %d chars): ", NAME_LEN);
+    serial_write;
+    serial_read;
+
+    strncpy(player_name, pt_serial_in_buffer, NAME_LEN);
+    player_name[NAME_LEN] = '\0';
+
+    size_t len = strlen(player_name);
+    if (len > 0 && player_name[len - 1] == '\n')
+    {
+      player_name[len - 1] = '\0';
+    }
+
+    printf("Player 1 name: '%s'\n\r", player_name);
+
+    insert_score(player_name, player1.solved, startMenuState.settings.mins - 1);
+    printf("after insert score\n\r");
+    // ---------- Player 2 ----------
+    sprintf(pt_serial_out_buffer, "Enter Player 2 name (max %d chars): ", NAME_LEN);
+    serial_write;
+    serial_read;
+
+    strncpy(player_name, pt_serial_in_buffer, NAME_LEN);
+    player_name[NAME_LEN] = '\0';
+
+    len = strlen(player_name);
+    if (len > 0 && player_name[len - 1] == '\n')
+    {
+      player_name[len - 1] = '\0';
+    }
+
+    printf("Player 2 name: '%s'\n\r", player_name);
+    insert_score(player_name, player2.solved, startMenuState.settings.mins - 1);
+  }
+
+  PT_END(pt);
+}
+
 // ==================================================
 // === game controller thread
 // ==================================================
@@ -115,7 +166,7 @@ static PT_THREAD(protothread_serial(struct pt *pt))
       if (gpio_get(BUTTON_PIN_P1_E) == 0)
       {
         while (gpio_get(BUTTON_PIN_P1_E) == 0)
-        ;
+          ;
         transitionToState(&player1, START_MENU);
         transitionToState(&player2, START_MENU);
       }
@@ -124,7 +175,7 @@ static PT_THREAD(protothread_serial(struct pt *pt))
       if (gpio_get(BUTTON_PIN_P1_E) == 0)
       {
         while (gpio_get(BUTTON_PIN_P1_E) == 0)
-        ;
+          ;
         transitionToState(&player1, START_MENU);
         transitionToState(&player2, START_MENU);
       }
@@ -133,11 +184,11 @@ static PT_THREAD(protothread_serial(struct pt *pt))
       if (gpio_get(BUTTON_PIN_P1_E) == 0)
       {
         while (gpio_get(BUTTON_PIN_P1_E) == 0)
-        ;
+          ;
         transitionToState(&player1, START_MENU);
         transitionToState(&player2, START_MENU);
       }
-    break;
+      break;
     case GAME_PLAYING:
       adc_select_input(ADC_CHAN0);
       joystick_x = adc_read();
@@ -186,13 +237,22 @@ static PT_THREAD(protothread_serial(struct pt *pt))
       break;
     case GAME_OVER:
       // Read button inputs
-      // printf("start menu time: %d min\n", startMenuState.settings.mins);
-      if (gpio_get(BUTTON_PIN_P1_E) == 0 || gpio_get(BUTTON_PIN_P1_R) == 0)
+      if (gpio_get(BUTTON_PIN_P1_E) == 0)
       {
         // ghetto debouncing
-        while (gpio_get(BUTTON_PIN_P1_E) == 0 || gpio_get(BUTTON_PIN_P1_R) == 0)
+        while (gpio_get(BUTTON_PIN_P1_E) == 0)
           ;
-
+        if (!gameFlags.savedScores)
+        {
+          gameFlags.savedScores = true;
+          PT_SEM_SIGNAL(pt, &leaderboard_semaphore);
+        }
+      }
+      else if (gpio_get(BUTTON_PIN_P1_R) == 0)
+      {
+        // ghetto debouncing
+        while (gpio_get(BUTTON_PIN_P1_R) == 0)
+          ;
         transitionToState(&player1, START_MENU);
       }
       break;
@@ -256,11 +316,11 @@ static PT_THREAD(protothread_serial1(struct pt *pt))
       // TODO: Add joystick reads here in the future
       break;
 
-      case oneMin:
+    case oneMin:
       if (gpio_get(BUTTON_PIN_P2_E) == 0)
       {
         while (gpio_get(BUTTON_PIN_P2_E) == 0)
-        ;
+          ;
         transitionToState(&player1, START_MENU);
         transitionToState(&player2, START_MENU);
       }
@@ -269,7 +329,7 @@ static PT_THREAD(protothread_serial1(struct pt *pt))
       if (gpio_get(BUTTON_PIN_P2_E) == 0)
       {
         while (gpio_get(BUTTON_PIN_P2_E) == 0)
-        ;
+          ;
         transitionToState(&player1, START_MENU);
         transitionToState(&player2, START_MENU);
       }
@@ -278,12 +338,12 @@ static PT_THREAD(protothread_serial1(struct pt *pt))
       if (gpio_get(BUTTON_PIN_P2_E) == 0)
       {
         while (gpio_get(BUTTON_PIN_P2_E) == 0)
-        ;
+          ;
         transitionToState(&player1, START_MENU);
         transitionToState(&player2, START_MENU);
       }
-    break;
-    break;
+      break;
+      break;
     case GAME_PLAYING:
       joystick_x = ads1115_read_single_channel(7);
       joystick_y = ads1115_read_single_channel(4);
@@ -328,14 +388,22 @@ static PT_THREAD(protothread_serial1(struct pt *pt))
       }
       break;
     case GAME_OVER:
-      // Read button inputs
-      // printf("start menu time: %d min\n", startMenuState.settings.mins);
-      if (gpio_get(BUTTON_PIN_P2_E) == 0 || gpio_get(BUTTON_PIN_P2_R) == 0)
+      if (gpio_get(BUTTON_PIN_P2_E) == 0)
       {
         // ghetto debouncing
-        while (gpio_get(BUTTON_PIN_P2_E) == 0 || gpio_get(BUTTON_PIN_P2_R) == 0)
+        while (gpio_get(BUTTON_PIN_P2_E) == 0)
           ;
-
+        if (!gameFlags.savedScores)
+        {
+          gameFlags.savedScores = true;
+          PT_SEM_SIGNAL(pt, &leaderboard_semaphore);
+        }
+      }
+      else if (gpio_get(BUTTON_PIN_P2_R) == 0)
+      {
+        // ghetto debouncing
+        while (gpio_get(BUTTON_PIN_P2_R) == 0)
+          ;
         transitionToState(&player2, START_MENU);
       }
       break;
@@ -403,10 +471,9 @@ int main()
 
   // Prepare wrapped audio, changed into loop? x
   // static unsigned short *DAC_data[MAX_AUDIO_FILES] = {NULL};
-  DAC_data_background = background_audio; // 
+  // DAC_data_background = background_audio; //
   DAC_data_deal = deal_cards_audio;
   DAC_data_flip = flip_cards_audio; // 6880
-
 
   // DAC_data_background = (unsigned short *)malloc(background_audio_len * sizeof(unsigned short));
   // if (!DAC_data_background) {
@@ -452,7 +519,7 @@ int main()
 
   // initialize controllers
   initController();
-  
+
   // start core 1
   multicore_reset_core1();
   multicore_launch_core1(&core1_main);
@@ -460,12 +527,14 @@ int main()
   // add threads
   pt_add_thread(protothread_serial);
   pt_add_thread(protothread_anim);
+  pt_add_thread(leaderboard_input);
 
   menuLock = spin_lock_instance(MENU_LOCK_ID);
   paramLock = spin_lock_instance(PARAM_LOCK_ID);
 
   transitionToState(&player1, START_MENU);
-
+  // insert_score("Test3", 10, 0);
+  // erase_all_eeprom();
   // start scheduler
   pt_schedule_start;
 }
