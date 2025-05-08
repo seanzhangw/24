@@ -97,6 +97,8 @@ void initVGA()
   // DMA channels - 0 sends color data, 1 reconfigures and restarts 0
   int rgb_chan_0 = dma_claim_unused_channel(true);
   int rgb_chan_1 = dma_claim_unused_channel(true);
+  // debug print
+  printf("VGA DMA channels claimed: rgb_chan_0 = %d, rgb_chan_1 = %d\n", rgb_chan_0, rgb_chan_1);
 
   // Channel Zero (sends color data to PIO VGA machine)
   dma_channel_config c0 = dma_channel_get_default_config(rgb_chan_0); // default configs
@@ -130,6 +132,9 @@ void initVGA()
       1,                                 // Number of transfers, in this case each is 4 byte
       false                              // Don't start immediately.
   );
+
+  channel_config_set_high_priority( &c0, true);
+  channel_config_set_high_priority( &c1, true);
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////////////////////////////

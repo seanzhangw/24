@@ -32,6 +32,7 @@ void initController()
 
 int joystickSelect(int joystick_x, int joystick_y)
 {
+    // printf("joystick_x: %d, joystick_y: %d\n", joystick_x, joystick_y);
     int delta_x = joystick_x - CENTER;
     int delta_y = joystick_y - CENTER;
 
