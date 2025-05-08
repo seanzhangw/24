@@ -160,6 +160,7 @@ static PT_THREAD(protothread_serial(struct pt *pt))
       adc_select_input(ADC_CHAN1);
       int joystick_y = adc_read();
 
+      // printf("joystick_x: %d, joystick_y: %d\n", joystick_x, joystick_y);
       sleep_us(400); // Small delay to stabilize joystick readings
       JoystickDir index = joystickSelect(joystick_x, joystick_y);
       if (index != NEUTRAL && lastJoystickDir == NEUTRAL)
@@ -314,6 +315,8 @@ static PT_THREAD(protothread_serial1(struct pt *pt))
       int joystick_x = ads1115_read_single_channel(7);
       int joystick_y = ads1115_read_single_channel(4);
 
+      // printf("joystick_x: %d, joystick_y: %d\n", joystick_x, joystick_y);
+
       sleep_us(400); // Small delay to stabilize joystick readings
       JoystickDir index = joystickSelect(joystick_x, joystick_y);
       if (index != NEUTRAL && lastJoystickDir == NEUTRAL)
@@ -366,7 +369,7 @@ static PT_THREAD(protothread_serial1(struct pt *pt))
       joystick_y = ads1115_read_single_channel(4);
 
       // User Selection
-      index = joystickSelect_ads(joystick_x, joystick_y);
+      index = joystickSelect(joystick_x, joystick_y);
       // f("index: %d\n", index);
 
       if (gpio_get(BUTTON_PIN_P2_S) == 0)

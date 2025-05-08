@@ -473,12 +473,14 @@ void handle_card_select(Player *player, bool enterPressed, int index)
     else if (player->opStage == SELECT_OP)
     {
         int offset = -5;
-        // erase previous operator underlines
-        drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + 20, 10, BACKGROUND);
-        drawHLine(player->cards[0].x + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BACKGROUND);
-        drawHLine(player->cards[0].x + IMG_WIDTH + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BACKGROUND);
-        drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 2 + 10, 10, BACKGROUND);
-
+        if (player->operator.op != operations[index])
+        {
+            // erase previous operator underlines
+            drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + 20, 10, BACKGROUND);
+            drawHLine(player->cards[0].x + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BACKGROUND);
+            drawHLine(player->cards[0].x + IMG_WIDTH + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BACKGROUND);
+            drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 2 + 10, 10, BACKGROUND);
+        }
         player->operator.state = OP_HOVERED;     // mark the operator as hovered
         player->operator.op = operations[index]; // set the operator
 

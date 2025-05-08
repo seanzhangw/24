@@ -42,9 +42,9 @@
 
 // ADC reading values
 #define DEADZONE 1000 // reduce noise
-#define DEADZONEads 1150
+#define DEADZONEads 1400
 #define CENTER 2048
-#define CENTERads 1500
+#define CENTERads 2500
 
 typedef enum
 {
