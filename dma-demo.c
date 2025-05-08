@@ -7,7 +7,7 @@
 #include "hardware/dma.h"
 #include "hardware/spi.h"
 
-// #include "background.h"
+#include "background.h"
 #include "bingo.h" 
 #include "buzzer.h"
 #include "deal_cards.h"
@@ -42,16 +42,9 @@ int main() {
     gpio_set_function(PIN_MOSI, GPIO_FUNC_SPI);
 
     // Wrap raw audio data with DAC command bits
-    static unsigned short *DAC_data;
-    static const uint32_t sample_count = deal_cards_audio_len; // background_audio_len is already in samples
-    DAC_data = (unsigned short *)malloc(sample_count * sizeof(unsigned short));
-    if (!DAC_data) {
-        printf("DAC_data malloc failed!\n");
-        return 1;
-    }
-    for (uint32_t i = 0; i < sample_count; ++i) {
-        DAC_data[i] = DAC_config_chan_A | (deal_cards_audio[i] & 0x0fff);
-    }
+    static const unsigned short *DAC_data;
+    static const uint32_t sample_count = background_audio_len;
+    DAC_data = background_audio;
 
     // Setup single DMA channel for one-shot playback
     int data_chan = dma_claim_unused_channel(true);

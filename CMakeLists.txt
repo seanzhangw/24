@@ -64,7 +64,7 @@ pico_add_extra_outputs(VGA_Animation_Demo)
 # add url via pico_set_program_url
 
 # ---------- compile dma-demo.c and run it saperately, need to comment out codes above here below "===" ----------
-# # Add a new executable file dma_demo
+# Add a new executable file dma_demo
 # add_executable(dma_demo dma-demo.c)
 
 # # Link necessary libraries
