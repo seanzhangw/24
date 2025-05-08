@@ -106,9 +106,8 @@ static PT_THREAD(leaderboard_input(struct pt *pt))
       player_name[len - 1] = '\0';
     }
 
-    printf("Player 1 name: '%s'\n\r", player_name);
-
-    insert_score(player_name, player1.solved, startMenuState.settings.mins - 1);
+    int score = player1.solved * (startMenuState.settings.difficultyLevel + 1);
+    insert_score(player_name, score, startMenuState.settings.mins - 1);
     // ---------- Player 2 ----------
     sprintf(pt_serial_out_buffer, "Enter Player 2 name (max %d chars): ", NAME_LEN);
     serial_write;
@@ -122,13 +121,22 @@ static PT_THREAD(leaderboard_input(struct pt *pt))
     {
       player_name[len - 1] = '\0';
     }
+    score = player2.solved * (startMenuState.settings.difficultyLevel + 1);
 
     printf("Player 2 name: '%s'\n\r", player_name);
-    insert_score(player_name, player2.solved, startMenuState.settings.mins - 1);
+    insert_score(player_name, score, startMenuState.settings.mins - 1);
   }
 
   PT_END(pt);
 }
+
+enum Debounce
+{
+  NotPressed,
+  MaybePressed,
+  Pressed,
+  MaybeNotPressed
+};
 
 // ==================================================
 // === game controller thread
@@ -136,6 +144,10 @@ static PT_THREAD(leaderboard_input(struct pt *pt))
 static PT_THREAD(protothread_serial(struct pt *pt))
 {
   PT_BEGIN(pt);
+
+  static int possible = -1;
+  enum Debounce curState = NotPressed;
+
   while (1)
   {
     // printf("player state: %d\n\r", player1.currentState);
@@ -576,6 +588,11 @@ int main()
   paramLock = spin_lock_instance(PARAM_LOCK_ID);
 
   transitionToState(&player1, START_MENU);
+
+  // drawHLine(startMenuIcons[0][0].x,
+  //           startMenuIcons[0][0].y + 16, startMenuIcons[0][0].len * 8, RED); // add an underline
+  // drawHLine(startMenuIcons[1][0].x,
+  //           startMenuIcons[1][0].y + 16, startMenuIcons[1][0].len * 8, RED); // add an underline
   // insert_score("Test3", 10, 0);
   // erase_all_eeprom();
   // start scheduler

@@ -20,7 +20,7 @@
 
 char operations[4] = {'+', '-', '/', '*'}; // Array of operators
 
-StartMenuState startMenuState = {0, 0, {EASY, 0}, LB_oneMin}; // Global variable for the start menu state
+StartMenuState startMenuState = {0, 0, {EASY, 1}, LB_oneMin}; // Global variable for the start menu state
 
 spin_lock_t *menuLock; // Spinlock for the start menu
 spin_lock_t *paramLock;
@@ -95,6 +95,9 @@ void prepNewRound()
     gameFlags.player1Win = false;
     gameFlags.player2Win = false;
     gameFlags.savedScores = false;
+
+    player1.solved = 0; // Reset the solved count for both players
+    player2.solved = 0;
 
     resetPlayer(&player1); // Reset player 1
     resetPlayer(&player2); // Reset player 2
@@ -312,28 +315,31 @@ void handle_card_select(Player *player, bool enterPressed, int index)
                      2 * IMG_WIDTH + 4, IMG_HEIGHT + 4, BLUE); // draw a card outline
             break;
         case SELECT_OP:
-            if (index == NEUTRAL)
+            if (index == NEUTRAL && player->operator.state != OP_HOVERED)
             {
                 return;
             }
-            player->operator.op = operations[index];
+            if (player->operator.state != OP_HOVERED)
+            {
+                player->operator.op = operations[index];
+            }
             player->operator.state = OP_SELECTED; // mark the operator as selected
             player->opStage = SELECT_NUM2;        // move to the next stage
 
             int offset = -5;
 
-            switch (index)
+            switch (player->operator.op)
             {
-            case 0:
+            case '+':
                 drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + 20, 10, BLUE);
                 break;
-            case 1:
+            case '-':
                 drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 2 + 10, 10, BLUE);
                 break;
-            case 2:
+            case '/':
                 drawHLine(player->cards[0].x + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BLUE);
                 break;
-            case 3:
+            case '*':
                 drawHLine(player->cards[0].x + IMG_WIDTH + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BLUE);
                 break;
             default:
@@ -472,6 +478,9 @@ void handle_card_select(Player *player, bool enterPressed, int index)
         drawHLine(player->cards[0].x + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BACKGROUND);
         drawHLine(player->cards[0].x + IMG_WIDTH + IMG_WIDTH / 2 + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 4 + 15, 10, BACKGROUND);
         drawHLine(player->cards[0].x + IMG_WIDTH + offset, player->cards[0].y + IMG_HEIGHT + IMG_HEIGHT / 2 + 10, 10, BACKGROUND);
+
+        player->operator.state = OP_HOVERED;     // mark the operator as hovered
+        player->operator.op = operations[index]; // set the operator
 
         switch (index)
         {
@@ -694,7 +703,7 @@ void drawStartMenu()
 
     // leader board select
     setCursor(440, 300);
-    writeStringBig("Leader board: ");
+    writeStringBig("Leaderboard: ");
 
     setTextColorBig(RED, BACKGROUND);
     setCursor(450, 420);
@@ -711,8 +720,12 @@ void drawStartMenu()
         }
     }
 
-    MenuIcon initiDiffIcon = startMenuIcons[0][0];
-    MenuIcon initTimeIcon = startMenuIcons[1][0];
+    drawHLine(startMenuIcons[0][startMenuState.settings.difficultyLevel].x,
+              startMenuIcons[0][startMenuState.settings.difficultyLevel].y + 16,
+              startMenuIcons[0][startMenuState.settings.difficultyLevel].len * 8, RED); // add an underline
+    drawHLine(startMenuIcons[1][startMenuState.settings.mins - 1].x,
+              startMenuIcons[1][startMenuState.settings.mins - 1].y + 16,
+              startMenuIcons[1][startMenuState.settings.mins - 1].len * 8, RED); // add an underline
 }
 
 void drawLeaderboard_60s()
@@ -999,6 +1012,9 @@ void drawRoundParams()
     writeStringBig("Time Left: ");
     setCursor(5, 65);
     writeStringBig("Difficulty: ");
+    setTextColor2(WHITE, BACKGROUND);
+    setCursor(100, 65);
+    writeStringBig(startMenuIcons[0][startMenuState.settings.difficultyLevel].text); // write the difficulty level
 }
 
 void updateParams(Player *player)
@@ -1009,9 +1025,9 @@ void updateParams(Player *player)
     else
         setCursor(100, 25);
 
-    sprintf(buffer, "%d", player->solved); // convert the score to a string
-    setTextColor2(WHITE, BACKGROUND);      // set the text color
-    writeStringBig(buffer);                // write the score
+    sprintf(buffer, "%d", player->solved * (startMenuState.settings.difficultyLevel + 1)); // convert the score to a string
+    setTextColor2(WHITE, BACKGROUND);                                                      // set the text color
+    writeStringBig(buffer);                                                                // write the score
 
     setCursor(100, 45);
     sprintf(buffer, "%d ", gameFlags.secondsLeft); // convert the time to a string
@@ -1097,8 +1113,8 @@ void drawGameOver()
     setCursor(210, 350);
     writeStringBig("Press RESET to Return to Menu");
 
-    player1.solved = 0;
-    player2.solved = 0;
+    // player1.solved = 0;
+    // player2.solved = 0;
 }
 
 void transitionToState(Player *player, GameState newState)
@@ -1111,7 +1127,6 @@ void transitionToState(Player *player, GameState newState)
         fillRect(0, 0, 640, 480, BACKGROUND);
         dma_channel_set_read_addr(data_chan, DAC_data_deal, false);  // set new source address
         dma_channel_set_read_addr(data_chan4, DAC_data_flip, false); // set new source address
-
         prepNewRound();
         drawStartMenu();
         player1.currentState = START_MENU;
