@@ -10,10 +10,10 @@
 #include <time.h>
 
 /* ------------------------ BEGIN: Start Menu --------------------------------*/
-#define ROWS 2
+#define ROWS 3
 #define COLS 3
 
-#define START_GAME_ROW 2
+#define START_GAME_ROW 3
 
 typedef struct
 {
@@ -39,12 +39,20 @@ typedef struct
     int mins;
 } Settings;
 
+typedef enum
+{
+    LB_oneMin,
+    LB_twoMin,
+    LB_threeMin
+} LBTime;
+
 typedef struct
 {
     int curRow;
     int curCol;
     Settings settings;
     JoystickDir lastMenuDir;
+    LBTime LBTime;
 } StartMenuState;
 
 #define MENU_LOCK_ID 0
@@ -70,6 +78,9 @@ typedef struct
 typedef enum
 {
     START_MENU,
+    oneMin,
+    twoMin,
+    threeMin,
     GAME_PLAYING,
     GAME_OVER
 } GameState;
@@ -157,3 +168,9 @@ void resetLevel(Player *player);
 void skipLevel(Player *player, int difficulty);
 
 void slideCards(Player *player);
+
+void drawLeaderboard_180s();
+
+void drawLeaderboard_120s();
+
+void drawLeaderboard_60s();

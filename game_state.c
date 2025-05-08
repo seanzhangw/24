@@ -2,6 +2,7 @@
 #include "game_state.h"
 #include "array_collection_difficultylevel.h"
 #include "input_handler.h"
+#include "eeprom.h"
 // from dma-demo.c
 #include <stdio.h>
 #include <math.h>
@@ -19,7 +20,7 @@
 
 char operations[4] = {'+', '-', '/', '*'}; // Array of operators
 
-StartMenuState startMenuState = {0, 0, {EASY, 0}}; // Global variable for the start menu state
+StartMenuState startMenuState = {0, 0, {EASY, 0}, LB_oneMin}; // Global variable for the start menu state
 
 spin_lock_t *menuLock; // Spinlock for the start menu
 spin_lock_t *paramLock;
@@ -42,6 +43,8 @@ extern unsigned short *DAC_data_flip;
 
 #define BACKGROUND DARK_GREEN
 
+#define NAME_LEN 8
+
 Player player1 = {START_MENU, {-1, -1, -1, -1}, {0}, {OP_DEFAULT, ' '}, 0, -1, -1, SELECT_NUM1, 1}; // Player 1
 Player player2 = {START_MENU, {-1, -1, -1, -1}, {0}, {OP_DEFAULT, ' '}, 0, -1, -1, SELECT_NUM1, 2}; // Player 2
 
@@ -54,6 +57,7 @@ repeating_timer_t timer;
 MenuIcon startMenuIcons[ROWS][COLS] = {
     {{406, 130, WHITE, 4, "EASY"}, {470, 130, WHITE, 6, "MEDIUM"}, {550, 130, WHITE, 4, "HARD"}},
     {{406, 230, WHITE, 5, "1 Min"}, {480, 230, WHITE, 5, "2 Min"}, {550, 230, WHITE, 5, "3 Min"}},
+    {{406, 330, WHITE, 4, "60s"}, {480, 330, WHITE, 4, "120s"}, {550, 330, WHITE, 4, "180s"}},
 };
 
 void sol_init()
@@ -478,14 +482,19 @@ void handle_start_menu_input(bool enterPressed, int index)
             drawHLine(icon.x,
                       icon.y + 16, icon.len * 8, BACKGROUND); // erase the underline
         }
-        else
+        else if (startMenuState.curRow == 1)
         {
             // subtract 1 here b/c we incremented 1 for an easier conversion from mins to seconds
             MenuIcon icon = startMenuIcons[startMenuState.curRow][startMenuState.settings.mins - 1];
             drawHLine(icon.x,
                       icon.y + 16, icon.len * 8, BACKGROUND); // erase the underline
         }
-
+        else
+        {
+            MenuIcon icon = startMenuIcons[startMenuState.curRow][startMenuState.LBTime+1];
+            drawHLine(icon.x,
+                icon.y + 16, icon.len * 8, BACKGROUND); // erase the underline
+        }
         MenuIcon icon = startMenuIcons[startMenuState.curRow][startMenuState.curCol];
 
         drawHLine(icon.x,
@@ -498,6 +507,21 @@ void handle_start_menu_input(bool enterPressed, int index)
         else if (startMenuState.curRow == 1)
         {
             startMenuState.settings.mins = startMenuState.curCol + 1; // set the time limit
+        }
+        else if (startMenuState.curRow == 2)
+        {
+            if (startMenuState.curCol == 0)
+            {
+                transitionToState(&player1, oneMin); // transition to leaderboard
+            }
+            if (startMenuState.curCol == 1)
+            {
+                transitionToState(&player1, twoMin); // transition to leaderboard
+            }
+            if (startMenuState.curCol == 2)
+            {
+                transitionToState(&player1, threeMin); // transition to leaderboard
+            }
         }
         else
         {
@@ -644,8 +668,12 @@ void drawStartMenu()
     setCursor(470, 200);
     writeStringBig("Time: ");
 
+    // leader board select
+    setCursor(440, 300);
+    writeStringBig("Leader board: ");
+
     setTextColorBig(RED, BACKGROUND);
-    setCursor(450, 350);
+    setCursor(450, 420);
     writeStringBig("Start Game");
 
     setTextColorBig(WHITE, BACKGROUND);
@@ -663,6 +691,180 @@ void drawStartMenu()
     MenuIcon initTimeIcon = startMenuIcons[1][0];
 }
 
+void drawLeaderboard_60s() {
+    fillRect(0, 0, 640, 480, BACKGROUND);
+
+    setTextColorBig(RED, BACKGROUND);
+    setCursor(250, 20);
+    writeStringBig("LEADERBOARD - 60s");
+
+    char buffer[16];
+    char name[4];
+    int baseY = 60;
+
+    for (int row = 0; row < MAX_DISPLAY; row++) {
+        int y = baseY + row * 40;
+
+        // Read from EEPROM
+        uint16_t addr = get_entry_addr(0, row); // mode 0 = 60s
+        eeprom_read_name(addr, name);
+        uint16_t score = eeprom_read_uint16(addr + 3);
+
+        // Draw entry background stripe
+        fillRect(60, y, 520, 30, (row % 2 == 0) ? DARK_BLUE : DARK_GREEN);
+
+        setCursor(80, y + 5);
+        setTextColorBig(WHITE, (row % 2 == 0) ? DARK_BLUE : DARK_GREEN);
+
+        if (score == 0 || score == 0xFFFF) {
+            sprintf(buffer, "%2d. ------", row + 1);
+        } else {
+            sprintf(buffer, "%2d. %s - %d", row + 1, name, score);
+        }
+        writeStringBig(buffer);
+    }
+
+    // Exit text
+    setCursor(250, 440);
+    setTextColorBig(RED, BACKGROUND);
+    writeStringBig("Press Enter to Exit");
+}
+
+void drawLeaderboard_120s() {
+    fillRect(0, 0, 640, 480, BACKGROUND);
+
+    setTextColorBig(RED, BACKGROUND);
+    setCursor(250, 20);
+    writeStringBig("LEADERBOARD - 120s");
+
+    char buffer[16];
+    char name[4];
+    int baseY = 60;
+
+    for (int row = 0; row < MAX_DISPLAY; row++) {
+        int y = baseY + row * 40;
+        uint16_t addr = get_entry_addr(1, row); // mode 1 = 120s
+        eeprom_read_name(addr, name);
+        uint16_t score = eeprom_read_uint16(addr + 3);
+
+        fillRect(60, y, 520, 30, (row % 2 == 0) ? DARK_BLUE : DARK_GREEN);
+
+        setCursor(80, y + 5);
+        setTextColorBig(WHITE, (row % 2 == 0) ? DARK_BLUE : DARK_GREEN);
+
+        if (score == 0 || score == 0xFFFF) {
+            sprintf(buffer, "%2d. ------", row + 1);
+        } else {
+            sprintf(buffer, "%2d. %s - %d", row + 1, name, score);
+        }
+        writeStringBig(buffer);
+    }
+
+    setCursor(250, 440);
+    setTextColorBig(RED, BACKGROUND);
+    writeStringBig("Press Enter to Exit");
+}
+
+void drawLeaderboard_180s() {
+    fillRect(0, 0, 640, 480, BACKGROUND);
+
+    setTextColorBig(RED, BACKGROUND);
+    setCursor(250, 20);
+    writeStringBig("LEADERBOARD - 180s");
+
+    char buffer[16];
+    char name[4];
+    int baseY = 60;
+
+    for (int row = 0; row < MAX_DISPLAY; row++) {
+        int y = baseY + row * 40;
+        uint16_t addr = get_entry_addr(2, row); // mode 2 = 180s
+        eeprom_read_name(addr, name);
+        uint16_t score = eeprom_read_uint16(addr + 3);
+
+        fillRect(60, y, 520, 30, (row % 2 == 0) ? DARK_BLUE : DARK_GREEN);
+
+        setCursor(80, y + 5);
+        setTextColorBig(WHITE, (row % 2 == 0) ? DARK_BLUE : DARK_GREEN);
+
+        if (score == 0 || score == 0xFFFF) {
+            sprintf(buffer, "%2d. ------", row + 1);
+        } else {
+            sprintf(buffer, "%2d. %s - %d", row + 1, name, score);
+        }
+        writeStringBig(buffer);
+    }
+
+    setCursor(250, 440);
+    setTextColorBig(RED, BACKGROUND);
+    writeStringBig("Press Enter to Exit");
+}
+
+void serialInput(uint16_t score1, uint16_t score2, int mode) {
+    char name_buf[NAME_LEN + 1];
+
+    // --- Player 1 ---
+    while (1) {
+        printf("Enter Player 1 name (max %d chars): ", NAME_LEN);
+        fflush(stdout);
+    
+        memset(name_buf, 0, sizeof(name_buf));
+    
+        if (!fgets(name_buf, sizeof(name_buf), stdin)) {
+            printf("Failed to read input.\n");
+            continue;
+        }
+    
+        size_t len = strlen(name_buf);
+        if (len > 0 && name_buf[len - 1] == '\n') {
+            name_buf[len - 1] = '\0';
+            len--;
+        } 
+        else 
+        {
+        // Flush the rest of the line if input was too long
+            int ch;
+            while ((ch = getchar()) != '\n' && ch != EOF);
+        }
+        printf("Length = %zu\n", len);
+
+        if (len > 0 && len <= NAME_LEN) {
+            insert_score(name_buf, score1, mode);
+            printf("Player 1 score saved as %s: %d\n", name_buf, score1);
+            break;
+        } else {
+            printf("Invalid name length. Please enter 1 to %d characters.\n", NAME_LEN);
+        }
+    }
+
+    // --- Player 2 ---
+    while (1) {
+        printf("Enter Player 2 name (max %d chars): ", NAME_LEN);
+        fflush(stdout);
+    
+        memset(name_buf, 0, sizeof(name_buf));
+    
+        if (!fgets(name_buf, sizeof(name_buf), stdin)) {
+            printf("Failed to read input.\n");
+            continue;
+        }
+    
+        size_t len = strlen(name_buf);
+        if (len > 0 && name_buf[len - 1] == '\n') {
+            name_buf[len - 1] = '\0';
+            len--;
+        }
+    
+        if (len > 0 && len <= NAME_LEN) {
+            insert_score(name_buf, score1, mode);
+            printf("Player 2 score saved as %s: %d\n", name_buf, score2);
+            break;
+        } else {
+            printf("Invalid name length. Please enter 1 to %d characters.\n", NAME_LEN);
+        }
+    }
+}
+
 void animateStartMenu()
 {
     if (startMenuState.curRow == START_GAME_ROW)
@@ -670,19 +872,19 @@ void animateStartMenu()
         // blink the start game text
         if ((time_us_32() >> 18) & 1)
         {
-            fillRect(450, 350, 100, 15, BACKGROUND);
+            fillRect(450, 420, 100, 15, BACKGROUND);
         }
         else
         {
             setTextColorBig(RED, BACKGROUND);
-            setCursor(450, 350);
+            setCursor(450, 420);
             writeStringBig("Start Game");
         }
     }
     else
     {
         setTextColorBig(RED, BACKGROUND);
-        setCursor(450, 350);
+        setCursor(450, 420);
         writeStringBig("Start Game");
     }
     for (int i = 0; i < ROWS; i++)
@@ -775,6 +977,24 @@ void transitionToState(Player *player, GameState newState)
         player1.currentState = START_MENU;
         player2.currentState = START_MENU;
         break;
+    case oneMin:
+        fillRect(0, 0, 640, 480, BACKGROUND);
+        player1.currentState = oneMin;
+        player2.currentState = oneMin;
+        drawLeaderboard_60s();
+        break;
+    case twoMin:
+        fillRect(0, 0, 640, 480, BACKGROUND);
+        player1.currentState = twoMin;
+        player2.currentState = twoMin;
+        drawLeaderboard_120s();
+        break; 
+    case threeMin:
+        fillRect(0, 0, 640, 480, BACKGROUND);
+        player1.currentState = threeMin;
+        player2.currentState = threeMin;
+        drawLeaderboard_180s();
+        break;
     case GAME_PLAYING: //!!!
         printf("In Game Playing State\n\r");
         fillRect(0, 0, 640, 480, BACKGROUND);
@@ -798,6 +1018,7 @@ void transitionToState(Player *player, GameState newState)
         player1.currentState = GAME_OVER;
         player2.currentState = GAME_OVER;
 
+        serialInput(player1.score, player2.score, startMenuState.settings.mins - 1);
         break;
     }
     // Reset the state transition flag
@@ -806,8 +1027,8 @@ void transitionToState(Player *player, GameState newState)
 
 void executeStep(Player *player)
 {
-    while (stateTransition)
-        ;
+    while (stateTransition);
+
     // Execute the current game state logic for the given player
     switch (player->currentState)
     {
@@ -817,6 +1038,13 @@ void executeStep(Player *player)
         animateStartMenu();
         // unlock
         spin_unlock(menuLock, irq_status);
+        break;
+
+    case oneMin:
+        break;
+    case twoMin:
+        break;
+    case threeMin:
         break;
     case GAME_PLAYING:
         drawDeck();
@@ -842,6 +1070,8 @@ void executeStep(Player *player)
         break;
     case GAME_OVER:
         // Logic for game over
+        // insert_score("TEST", 1, startMenuState.settings.mins-1);
+        // printf("start menu time: %d min\n", startMenuState.settings.mins);
         break;
     default:
         break;
