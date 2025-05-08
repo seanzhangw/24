@@ -1058,9 +1058,7 @@ void updateParams(Player *player)
 bool timer_callback(repeating_timer_t *rt)
 {
     if (gameFlags.secondsLeft > 0)
-        // gameFlags.secondsLeft--;
-        // for testing purposes, decrease the time by 10 seconds
-        gameFlags.secondsLeft = gameFlags.secondsLeft - 10;
+        gameFlags.secondsLeft--;
     else
         return false; // Stop timer when timeLeft reaches 0
     return true;
